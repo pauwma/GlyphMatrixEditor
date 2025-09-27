@@ -2246,6 +2246,26 @@ function generateBinaryOutput() {
     return binaryString.slice(0, -1);
 }
 
+function generatePixelArray(framePixels = pixelOpacities) {
+    const pixelArray = [];
+
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            const pixelId = `${row}-${col}`;
+            const rowWidth = shapePattern[row] || 0;
+            const startCol = Math.floor((gridSize - rowWidth) / 2);
+            const endCol = startCol + rowWidth - 1;
+
+            if (col >= startCol && col <= endCol) {
+                const opacity = framePixels.get(pixelId) || 0;
+                pixelArray.push(opacity);
+            }
+        }
+    }
+
+    return pixelArray;
+}
+
 function updateOutput() {
     // Generate binary output for internal use
     generateBinaryOutput();
@@ -4142,7 +4162,6 @@ function updatePreviewPlayPauseButton() {
         feather.replace();
     }
 }
-
 function updateDataOutput() {
     if (!dataOutput) return;
     
@@ -4153,19 +4172,22 @@ function updateDataOutput() {
         output = generateBinaryOutput();
     } else if (format === 'json') {
         const frameData = {
-            version: "1.0",
-            dimensions: { width: gridSize, height: gridSize },
-            shape: shapePattern,
-            frames: frames.map((frame, index) => ({
-                index: index,
-                duration: frame.duration || frameDuration,
-                pixels: Array.from(frame.pixels || new Map()).map(([index, opacity]) => ({
-                    index: index,
-                    row: Math.floor(index / gridSize),
-                    col: index % gridSize,
-                    opacity: opacity
-                }))
-            }))
+            v: 1,
+            frames: frames.map((frame) => {
+                const pixelArray = generatePixelArray(frame.pixels || new Map());
+
+                // Only include duration for multiple frames
+                if (frames.length > 1) {
+                    return {
+                        d: frame.duration || frameDuration,
+                        p: pixelArray
+                    };
+                } else {
+                    return {
+                        p: pixelArray
+                    };
+                }
+            })
         };
         output = JSON.stringify(frameData, null, 2);
     } else if (format === 'array') {
