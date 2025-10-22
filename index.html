@@ -255,7 +255,7 @@
                             </button>
                             <button class="btn action-btn" id="binaryBtn">
                                 <i data-feather="file-text" class="btn-icon"></i>
-                                Pixel Data
+                                Raw Data
                             </button>
                         </div>
 
@@ -561,9 +561,20 @@
 
                         <!-- Binary Import Section -->
                         <div class="import-controls" id="binaryImportControls" style="display: none;">
+                            <!-- File Upload Drop Zone -->
+                            <div class="file-drop-zone" id="jsonDropZone">
+                                <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+                                <i data-feather="upload-cloud" class="drop-icon"></i>
+                                <p class="drop-text">Drop JSON file here or click to browse</p>
+                                <p class="drop-subtext">Supports .json files with Glyph Matrix format</p>
+                            </div>
+
+                            <div class="separator">
+                                <span>OR</span>
+                            </div>
+
                             <div class="input-group nomargin">
-                                <label>Pixel Data:</label>
-                                <textarea id="binaryInput" placeholder="Paste pixel data here..." rows="4"></textarea>
+                                <textarea id="binaryInput" placeholder="Paste raw pixel data or JSON here..." rows="4"></textarea>
                             </div>
                             <button class="btn last" id="applyBinaryBtn">
                                 <i data-feather="check" class="btn-icon"></i>
@@ -919,6 +930,5 @@
 
     <script src="emojiNames.js"></script>
     <script src="script.js"></script>
-    <script type="module" src="js/main.js"></script>
 </body>
 </html>

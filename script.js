@@ -165,6 +165,8 @@ const redoBtn = document.getElementById('redoBtn');
 // Binary input controls
 const binaryInput = document.getElementById('binaryInput');
 const applyBinaryBtn = document.getElementById('applyBinaryBtn');
+const jsonDropZone = document.getElementById('jsonDropZone');
+const jsonFileInput = document.getElementById('jsonFileInput');
 
 // Modal elements
 const textModal = document.getElementById('textModal');
@@ -1259,58 +1261,171 @@ function toggleBinaryImport() {
     } else {
         // Hide other import controls
         importControls.style.display = 'none';
-        
+
         // Show binary import controls
         binaryImportControls.style.display = 'block';
         binaryBtn.classList.add('active');
-        
+
+        // Initialize feather icons for the drop zone
+        feather.replace();
+
         // Focus on the textarea
         binaryInput.focus();
     }
 }
 
+// Helper function to apply pixel values array to a Map
+function applyPixelDataToMap(values, targetMap) {
+    let valueIndex = 0;
+
+    for (let row = 0; row < gridSize; row++) {
+        const rowWidth = shapePattern[row] || 0;
+        const startCol = Math.floor((gridSize - rowWidth) / 2);
+        const endCol = startCol + rowWidth - 1;
+
+        for (let col = startCol; col <= endCol; col++) {
+            if (valueIndex < values.length) {
+                const value = values[valueIndex];
+                if (value > 0) {
+                    const pixelId = `${row}-${col}`;
+                    targetMap.set(pixelId, Math.max(0, Math.min(255, value)));
+                }
+                valueIndex++;
+            }
+        }
+    }
+}
+
+// Helper function to import frames from JSON format
+function importJsonFrames(jsonData) {
+    // Validate JSON structure
+    if (!jsonData.v || jsonData.v !== 1) {
+        throw new Error('Invalid or unsupported JSON version');
+    }
+
+    if (!jsonData.frames || !Array.isArray(jsonData.frames) || jsonData.frames.length === 0) {
+        throw new Error('Invalid frames data');
+    }
+
+    const totalPixels = shapePattern.reduce((sum, width) => sum + width, 0);
+
+    // Validate all frames have correct pixel count
+    for (let i = 0; i < jsonData.frames.length; i++) {
+        const frame = jsonData.frames[i];
+        if (!frame.p || !Array.isArray(frame.p) || frame.p.length !== totalPixels) {
+            throw new Error(`Frame ${i + 1} has invalid pixel data (expected ${totalPixels} pixels)`);
+        }
+    }
+
+    // Single frame: apply to current frame
+    if (jsonData.frames.length === 1) {
+        const frameData = jsonData.frames[0];
+        pixelOpacities.clear();
+        applyPixelDataToMap(frameData.p, pixelOpacities);
+
+        // Update duration if provided
+        if (frameData.d && frameData.d > 0) {
+            frameDuration = frameData.d;
+            frames[currentFrameIndex].duration = frameData.d;
+            updateDurationDisplay();
+        }
+
+        saveToHistory();
+        updateDisplay();
+        return 'Single frame imported successfully!';
+    }
+
+    // Multiple frames: replace all frames
+    frames = [];
+
+    for (let i = 0; i < jsonData.frames.length; i++) {
+        const frameData = jsonData.frames[i];
+        const newPixelMap = new Map();
+
+        applyPixelDataToMap(frameData.p, newPixelMap);
+
+        const newFrame = {
+            pixels: newPixelMap,
+            duration: frameData.d || frameDuration,
+            history: [],
+            historyIndex: -1
+        };
+
+        // Initialize frame history
+        newFrame.history.push(new Map(newPixelMap));
+        newFrame.historyIndex = 0;
+
+        frames.push(newFrame);
+    }
+
+    // Set to first frame
+    currentFrameIndex = 0;
+    pixelOpacities = new Map(frames[0].pixels);
+    frameDuration = frames[0].duration;
+
+    updateFramesDisplay();
+    updateDurationDisplay();
+    updateDisplay();
+    updateHistoryButtons();
+
+    return `${jsonData.frames.length} frames imported successfully!`;
+}
+
 function applyBinaryData() {
     const binaryData = binaryInput.value.trim();
     if (!binaryData) return;
-    
+
     pauseAnimationIfPlaying();
-    
+
     try {
-        const values = binaryData.split(',').map(v => parseInt(v.trim()));
-        let valueIndex = 0;
-        
-        pixelOpacities.clear();
-        
-        for (let row = 0; row < gridSize; row++) {
-            const rowWidth = shapePattern[row] || 0;
-            const startCol = Math.floor((gridSize - rowWidth) / 2);
-            const endCol = startCol + rowWidth - 1;
-            
-            for (let col = startCol; col <= endCol; col++) {
-                if (valueIndex < values.length) {
-                    const value = values[valueIndex];
-                    if (value > 0) {
-                        const pixelId = `${row}-${col}`;
-                        pixelOpacities.set(pixelId, Math.max(0, Math.min(255, value)));
-                    }
-                    valueIndex++;
+        let successMessage = '';
+        let isJsonFormat = false;
+
+        // Try to detect and parse JSON format
+        // Handle both {"v":1...} and "{\"v\":1...}" (quoted JSON)
+        if (binaryData.startsWith('{') || binaryData.startsWith('"{')) {
+            try {
+                // Parse once to handle potential quoted string
+                let jsonData = JSON.parse(binaryData);
+
+                // If result is a string, parse again (was quoted JSON)
+                if (typeof jsonData === 'string') {
+                    jsonData = JSON.parse(jsonData);
                 }
+
+                // Verify it's our JSON format with v and frames
+                if (jsonData.v && jsonData.frames) {
+                    successMessage = importJsonFrames(jsonData);
+                    isJsonFormat = true;
+                }
+            } catch (e) {
+                // Not valid JSON, will fall through to raw data parsing
+                isJsonFormat = false;
             }
         }
-        
-        saveToHistory();
-        updateDisplay();
-        showBinaryFeedback('Pixel data applied successfully!', 'success');
-        
+
+        // If not JSON format, treat as legacy raw pixel data
+        if (!isJsonFormat) {
+            const values = binaryData.split(',').map(v => parseInt(v.trim()));
+            pixelOpacities.clear();
+            applyPixelDataToMap(values, pixelOpacities);
+
+            saveToHistory();
+            updateDisplay();
+            successMessage = 'Pixel data applied successfully!';
+        }
+
+        showBinaryFeedback(successMessage, 'success');
+
         // Hide binary import controls after applying
         binaryImportControls.style.display = 'none';
         binaryBtn.classList.remove('active');
-        
+
         // Clear the input
         binaryInput.value = '';
-        
+
     } catch (error) {
-        showBinaryFeedback('Invalid pixel data format', 'error');
+        showBinaryFeedback(error.message || 'Invalid pixel data format', 'error');
     }
 }
 
@@ -3550,6 +3665,97 @@ if (redoBtn) redoBtn.addEventListener('click', redo);
 
 // Binary input event listener
 if (applyBinaryBtn) applyBinaryBtn.addEventListener('click', applyBinaryData);
+
+// JSON file upload event listeners
+if (jsonDropZone && jsonFileInput) {
+    // Click to browse
+    jsonDropZone.addEventListener('click', () => {
+        jsonFileInput.click();
+    });
+
+    // File input change
+    jsonFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleJsonFile(file);
+        }
+    });
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        jsonDropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        jsonDropZone.addEventListener(eventName, () => {
+            jsonDropZone.classList.add('drag-over');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        jsonDropZone.addEventListener(eventName, () => {
+            jsonDropZone.classList.remove('drag-over');
+        }, false);
+    });
+
+    // Handle dropped files
+    jsonDropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            handleJsonFile(files[0]);
+        }
+    }, false);
+}
+
+// Handle JSON file reading
+function handleJsonFile(file) {
+    // Validate file type
+    if (!file.name.endsWith('.json')) {
+        showBinaryFeedback('Please select a valid JSON file', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        try {
+            const content = e.target.result;
+            pauseAnimationIfPlaying();
+
+            // Parse and import JSON
+            const jsonData = JSON.parse(content);
+            const successMessage = importJsonFrames(jsonData);
+
+            showBinaryFeedback(successMessage, 'success');
+
+            // Hide binary import controls after successful import
+            binaryImportControls.style.display = 'none';
+            binaryBtn.classList.remove('active');
+
+            // Reset file input
+            jsonFileInput.value = '';
+
+        } catch (error) {
+            showBinaryFeedback(error.message || 'Failed to read JSON file', 'error');
+            jsonFileInput.value = '';
+        }
+    };
+
+    reader.onerror = () => {
+        showBinaryFeedback('Failed to read file', 'error');
+        jsonFileInput.value = '';
+    };
+
+    reader.readAsText(file);
+}
 
 // Modal event listeners
 closeTextModal.addEventListener('click', hideTextModal);
