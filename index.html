@@ -17,8 +17,241 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&display=swap" rel="stylesheet">
+
+    <!-- Share Handler Styles -->
+    <style>
+        /* Share redirect modal - leverages existing .text-modal base styles */
+        #shareRedirectModal {
+            display: none;
+        }
+
+        #shareRedirectModal.active {
+            display: flex;
+        }
+
+        #shareRedirectModal .modal-content {
+            text-align: center;
+            padding: 40px 30px;
+            max-width: 350px;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #333;
+            border-top-color: #fff;
+            border-radius: 50%;
+            margin: 0 auto 25px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Share modal typography */
+        #shareRedirectModal h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        #shareRedirectModal p {
+            font-size: 0.85rem;
+            color: #999;
+            margin: 0;
+            line-height: 1.5;
+        }
+    </style>
+
+    <!-- Share Handler Script -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Configuration
+            const CONFIG = {
+                PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.pauwma.glyphmuseum',
+                DEEP_LINK_SCHEME: 'com.pauwma.glyphmuseum',
+                REDIRECT_TIMEOUT: 2500, // ms to wait before Play Store redirect
+                DEBUG: false // Set to true for console logging
+            };
+
+            /**
+             * Logs debug messages if DEBUG mode is enabled
+             */
+            function log(...args) {
+                if (CONFIG.DEBUG) {
+                    console.log('[Share Handler]', ...args);
+                }
+            }
+
+            /**
+             * Detects if the user is on an Android device
+             */
+            function isAndroid() {
+                return /Android/i.test(navigator.userAgent);
+            }
+
+            /**
+             * Parses URL parameters for share information
+             */
+            function getShareParams() {
+                const params = new URLSearchParams(window.location.search);
+                return {
+                    type: params.get('share'),      // 'post' or 'profile'
+                    postId: params.get('id'),       // Post ID for posts
+                    handle: params.get('handle')    // Handle for profiles
+                };
+            }
+
+            /**
+             * Constructs deep link URL based on share type
+             */
+            function buildDeepLink(shareParams) {
+                const { type, postId, handle } = shareParams;
+
+                if (type === 'post' && postId) {
+                    return `${CONFIG.DEEP_LINK_SCHEME}://post/${postId}`;
+                }
+
+                if (type === 'profile' && handle) {
+                    return `${CONFIG.DEEP_LINK_SCHEME}://profile/${handle}`;
+                }
+
+                return null;
+            }
+
+            /**
+             * Updates the modal status text
+             */
+            function updateStatus(message) {
+                const statusEl = document.getElementById('shareStatusText');
+                if (statusEl) {
+                    statusEl.textContent = message;
+                }
+            }
+
+            /**
+             * Shows the share redirect modal
+             */
+            function showModal() {
+                const modal = document.getElementById('shareRedirectModal');
+                if (modal) {
+                    modal.classList.add('active');
+                }
+            }
+
+            /**
+             * Hides the share redirect modal
+             */
+            function hideModal() {
+                const modal = document.getElementById('shareRedirectModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            }
+
+            /**
+             * Attempts to open the deep link
+             */
+            function attemptDeepLink(deepLink) {
+                if (!deepLink) {
+                    log('No valid deep link to open');
+                    return false;
+                }
+
+                log('Attempting to open deep link:', deepLink);
+                updateStatus('Opening Glyph Museum...');
+
+                // Try to open the deep link
+                window.location.href = deepLink;
+
+                return true;
+            }
+
+            /**
+             * Redirects to Play Store after timeout
+             */
+            function redirectToPlayStore() {
+                log('Setting up Play Store fallback');
+
+                setTimeout(() => {
+                    log('Redirecting to Play Store');
+                    updateStatus('App not found - Opening Play Store...');
+
+                    setTimeout(() => {
+                        window.location.href = CONFIG.PLAY_STORE_URL;
+                    }, 500);
+                }, CONFIG.REDIRECT_TIMEOUT);
+            }
+
+            /**
+             * Main handler function
+             */
+            function handleShareLink() {
+                // Parse share parameters
+                const shareParams = getShareParams();
+
+                // Check if this is a share link
+                if (!shareParams.type) {
+                    log('No share parameter found, not a share link');
+                    return;
+                }
+
+                log('Share link detected:', shareParams);
+
+                // Only proceed on Android devices
+                if (!isAndroid()) {
+                    log('Not an Android device, ignoring share link');
+                    return;
+                }
+
+                // Build deep link
+                const deepLink = buildDeepLink(shareParams);
+
+                if (!deepLink) {
+                    log('Could not build deep link from parameters');
+                    return;
+                }
+
+                // Show modal with loading state
+                showModal();
+
+                // Attempt to open app via deep link
+                const deepLinkAttempted = attemptDeepLink(deepLink);
+
+                if (deepLinkAttempted) {
+                    // If deep link was attempted, set up Play Store fallback
+                    // This will only execute if the app is not installed
+                    redirectToPlayStore();
+                }
+            }
+
+            // Execute handler when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', handleShareLink);
+            } else {
+                handleShareLink();
+            }
+
+        })();
+    </script>
 </head>
 <body>
+    <!-- Share Redirect Modal -->
+    <div class="text-modal" id="shareRedirectModal">
+        <div class="modal-content">
+            <div class="loading-spinner"></div>
+            <h3>Opening in Glyph Museum</h3>
+            <p id="shareStatusText">Detecting app...</p>
+        </div>
+    </div>
+
     <!-- Header outside container for full width -->
     <div class="header" id="header">
         <div class="header-left">
