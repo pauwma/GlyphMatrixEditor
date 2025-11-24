@@ -1258,6 +1258,87 @@ a:hover   { opacity: .8; }
     margin-top: 15px;
 }
 
+/* File drop zone styles */
+.file-drop-zone {
+    border: 2px dashed #444;
+    border-radius: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #1a1a1a;
+    margin-bottom: 15px;
+}
+
+.file-drop-zone:hover {
+    border-color: #666;
+    background: #222;
+}
+
+.file-drop-zone.drag-over {
+    border-color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+    transform: scale(1.02);
+}
+
+.file-drop-zone .drop-icon {
+    width: 40px;
+    height: 40px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.file-drop-zone:hover .drop-icon {
+    color: #999;
+}
+
+.file-drop-zone.drag-over .drop-icon {
+    color: #ff3b30;
+}
+
+.drop-text {
+    margin: 0 0 5px 0;
+    color: #999;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.drop-subtext {
+    margin: 0;
+    color: #666;
+    font-size: 0.75rem;
+}
+
+/* Separator styles */
+.separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 15px 0;
+}
+
+.separator::before,
+.separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #333;
+}
+
+.separator:not(:empty)::before {
+    margin-right: 10px;
+}
+
+.separator:not(:empty)::after {
+    margin-left: 10px;
+}
+
+.separator span {
+    color: #666;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
 /*---------- INI - SLIDERS ----------*/
 .slider-group {
     display: flex;
