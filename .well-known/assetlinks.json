@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pauwma.glyphmuseum",
+      "sha256_cert_fingerprints": [
+        "85:6A:0D:B0:FE:08:AF:66:F5:8C:E8:E3:33:E0:23:03:F7:4D:1A:37:0B:D7:DA:E0:FB:69:91:1F:6A:99:25:9B"
+      ]
+    }
+  }
+]
