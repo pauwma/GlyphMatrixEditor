@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +14,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/favicon/favicon-16x16.png">
     <link rel="manifest" href="img/favicon/site.webmanifest">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&display=swap" rel="stylesheet">
@@ -47,7 +48,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* Share modal typography */
@@ -70,7 +73,7 @@
 
     <!-- Share Handler Script -->
     <script>
-        (function() {
+        (function () {
             'use strict';
 
             // Configuration
@@ -242,13 +245,14 @@
         })();
     </script>
 </head>
+
 <body>
     <!-- Share Redirect Modal -->
-    <div class="text-modal" id="shareRedirectModal">
+    <div id="shareRedirectModal" class="text-modal">
         <div class="modal-content">
             <div class="loading-spinner"></div>
-            <h3>Opening in Glyph Museum</h3>
-            <p id="shareStatusText">Detecting app...</p>
+            <h3>Opening Glyph Museum</h3>
+            <p>Redirecting you to the app...</p>
         </div>
     </div>
 
@@ -263,12 +267,17 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="header-center">
             <h1 class="main-title">Glyph Matrix Editor</h1>
         </div>
-        
+
         <div class="header-right">
+            <!-- Redundant buttons removed as requested -->
+            <div class="header-controls">
+
+            </div>
+
             <!-- Navigation Tabs moved to right -->
             <div class="header-nav">
                 <button class="nav-tab active" id="editorTab">
@@ -280,570 +289,737 @@
                     Museum
                 </a>
             </div>
-            
+
             <button class="shortcuts-btn" id="shortcutsBtn" title="Keyboard Shortcuts (?)">
                 <i data-feather="command" class="btn-icon"></i>
             </button>
         </div>
     </div>
-    
-    <div class="container">
 
-        <!-- Animation Controls Section -->
-        <div class="animation-section">
-            <div class="control-section collapsed">
-                <div class="control-header">
-                    <h3>Animation</h3>
-                </div>
-                <div class="control-content">
-                    <div class="animation-controls">
-                        <button class="btn" id="newFrameBtn">
-                            <i data-feather="plus" class="btn-icon"></i>
-                        </button>
-                        <button class="btn" id="duplicateFrameBtn">
-                            <i data-feather="copy" class="btn-icon"></i>
-                        </button>
-                        <button class="btn danger" id="deleteFrameBtn">
-                            <i data-feather="trash" class="btn-icon"></i>
-                        </button>
-                        <button class="btn primary" id="playBtn">
-                            <i data-feather="play" class="btn-icon"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Frames Timeline -->
-                    <div class="frames-timeline">
-                        <div class="frames-container" id="framesContainer">
-                            <!-- Frames will be added here dynamically -->
-                        </div>
-                    </div>
-                    
-                    <!-- Duration Control -->
-                    <div class="duration-control">
-                        <div class="slider-group">
-                            <label class="slider-label">Duration</label>
-                            <input type="range" id="durationSlider" min="50" max="1000" value="100" class="slider" title="Double-click to reset">
-                            <input type="number" id="durationValue" min="50" max="1000" value="100" class="slider-input">
-                            <span class="duration-unit">ms</span>
-                        </div>
-                    </div>
-                </div>
+    <div class="app-container" style="display: flex; min-height: calc(100vh - 68px);">
+        <!-- Project Sidebar -->
+        <aside class="project-sidebar" id="projectSidebar">
+            <div class="sidebar-header">
+                <h2>Projects</h2>
+                <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse Sidebar">
+                    <i data-feather="chevrons-left" class="btn-icon"></i>
+                </button>
             </div>
-        </div>
-
-        <div class="main-content">
-            <div class="grid-section">
-                <div class="grid-container">
-                    <div class="grid" id="pixelGrid"></div>
-                </div>
-                <div class="grid-info">
-                    <span id="activeCount">0</span> / <span id="totalPixels">0</span> pixels active
-                </div>
+            <div class="project-list" id="projectList">
+                <!-- Project items will be injected here -->
             </div>
+            <div class="sidebar-footer">
+                <button class="btn primary" id="createNewProjectBtn">
+                    <i data-feather="plus"></i> New Project
+                </button>
+            </div>
+        </aside>
 
-            <div class="controls">
-                
-                <div class="history-controls">
-                    <button class="btn history-btn" id="undoBtn">
-                        <i data-feather="arrow-left" class="btn-icon"></i>
-                        Undo
-                    </button>
-                    <button class="btn history-btn" id="redoBtn">
-                        <i data-feather="arrow-right" class="btn-icon"></i>
-                        Redo
-                    </button>
-                </div>
+        <!-- Main Editor Area -->
+        <main class="editor-area"
+            style="flex: 1; display: flex; flex-direction: column; position: relative;">
 
-                <div class="control-section">
+
+            <!-- Animation Controls Section -->
+            <div class="animation-section" style="width: 100%; margin-top: 20px;">
+                <div class="control-section collapsed">
                     <div class="control-header">
-                        <h3>Brush</h3>
+                        <h3>Animation</h3>
                     </div>
                     <div class="control-content">
-                        <div class="brush-controls-row">
-                            <div class="brush-mode">
-                                <button class="mode-toggle-btn active" id="brushToggleBtn">
-                                    <div class="toggle-indicator" id="brushToggle"></div>
-                                    <span class="toggle-label">Drag to Paint</span>
-                                </button>
-                            </div>
-                            <div class="selection-mode">
-                                <button class="mode-toggle-btn" id="selectionToggleBtn">
-                                    <div class="toggle-indicator" id="selectionToggle"></div>
-                                    <span class="toggle-label">Select Mode</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="brush-opacity">
-                            <div class="slider-group">
-                                <label class="slider-label">Opacity</label>
-                                <input type="range" id="opacitySlider" min="0" max="255" value="255" class="slider" title="Double-click to reset">
-                                <input type="number" id="opacityValue" min="0" max="255" value="255" class="slider-input">
-                                <button class="eyedropper-btn" id="eyedropperBtn" title="Pick opacity from grid">
-                                    <i data-feather="droplet" class="btn-icon"></i>
-                                </button>
-                                <div class="opacity-preview" id="opacityPreview"></div>
-                            </div>
-                        </div>
-                        <!-- Selection Actions (shown only in selection mode) -->
-                        <div class="selection-actions" id="selectionActions" style="display: none;">
-                            <div class="selection-controls-row">
-                                <button class="arrow-btn" id="moveUpBtn" title="Move Up">
-                                    <i data-feather="arrow-up" class="arrow-icon"></i>
-                                </button>
-                                <button class="arrow-btn" id="moveDownBtn" title="Move Down">
-                                    <i data-feather="arrow-down" class="arrow-icon"></i>
-                                </button>
-                                <button class="arrow-btn" id="moveLeftBtn" title="Move Left">
-                                    <i data-feather="arrow-left" class="arrow-icon"></i>
-                                </button>
-                                <button class="arrow-btn" id="moveRightBtn" title="Move Right">
-                                    <i data-feather="arrow-right" class="arrow-icon"></i>
-                                </button>
-                                <div class="selection-separator"></div>
-                                <button class="arrow-btn" id="selectAllBtn" title="Select All">
-                                    <i data-feather="check-square" class="arrow-icon"></i>
-                                </button>
-                                <button class="arrow-btn" id="copySelectionBtn" title="Copy">
-                                    <i data-feather="copy" class="arrow-icon"></i>
-                                </button>
-                                <button class="arrow-btn" id="pasteSelectionBtn" title="Paste">
-                                    <i data-feather="clipboard" class="arrow-icon"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="control-section">
-                    <div class="control-header">
-                        <h3>Actions</h3>
-                    </div>
-                    <div class="control-content">
-                        <div class="action-row">
-                            <button class="btn primary action-btn" id="fillBtn">
-                                <i data-feather="droplet" class="btn-icon"></i>
-                                Fill
+                        <div class="animation-controls" style="display: flex; align-items: center; width: 100%;">
+                            <!-- Left Controls: Play, Playback, New, Duplicate -->
+                            <button class="btn btn-icon-only" id="playBtn" title="Play/Pause (Space)">
+                                <i data-feather="play" class="btn-icon"></i>
                             </button>
-                            <button class="btn danger action-btn" id="clearBtn">
-                                <i data-feather="x" class="btn-icon"></i>
-                                Clear
-                            </button>
-                            <button class="btn action-btn" id="invertBtn">
+                            <button class="btn btn-icon-only" id="playbackModeBtn" title="Playback Mode: Cycle">
                                 <i data-feather="repeat" class="btn-icon"></i>
-                                Invert
                             </button>
-                            <button class="btn action-btn" id="flipHBtn">
-                                <i data-feather="columns" class="btn-icon"></i>
-                                Mirror
+                            <button class="btn btn-icon-only" id="newFrameBtn" title="New Frame">
+                                <i data-feather="plus-square" class="btn-icon"></i>
                             </button>
-                            <button class="btn action-btn" id="flipVBtn"><i data-feather="columns" class="btn-icon" style="transform: rotate(90deg); transform-origin: center;"></i>
+                            <button class="btn btn-icon-only" id="duplicateFrameBtn" title="Duplicate Frame">
+                                <i data-feather="copy" class="btn-icon"></i>
+                            </button>
 
-                                Flip
-                            </button>
-                            <button class="btn action-btn" id="rotateBtn">
-                                <i data-feather="rotate-cw" class="btn-icon"></i>
-                                Rotate 
+                            <div style="flex-grow: 1;"></div> <!-- Spacer -->
+
+                            <!-- Right Controls: Delete -->
+                            <button class="btn btn-icon-only danger" id="deleteFrameBtn" title="Delete Frame">
+                                <i data-feather="trash-2" class="btn-icon"></i>
                             </button>
                         </div>
-                        
+
+                        <!-- Frames Timeline -->
+                        <div class="frames-timeline">
+                            <div class="frames-container" id="framesContainer">
+                                <!-- Frames will be added here dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Duration & Onion Skin Control -->
+                        <div class="duration-control-row">
+                            <div class="duration-slider-group">
+                                <button class="mode-toggle-btn small-toggle" id="applyAllDurationBtn"
+                                    title="Apply duration to all frames">
+                                    <div class="toggle-indicator" id="applyAllDurationIndicator"></div>
+                                    <span class="toggle-label">All</span>
+                                </button>
+                                <label class="slider-label">Frame Duration</label>
+                                <input type="range" id="durationSlider" min="50" max="1000" value="100" class="slider"
+                                    title="Double-click to reset">
+                                <input type="number" id="durationValue" min="50" max="1000" value="100"
+                                    class="slider-input">
+                                <span class="duration-unit">ms</span>
+                            </div>
+
+                            <!-- Onion Skin Controls (Moved) -->
+                            <div class="onion-utils-group">
+                                <div class="onion-controls-row">
+                                    <button id="onionPrevBtn" class="mode-toggle-btn onion-arrow-btn">
+                                        <i data-feather="chevron-left"></i>
+                                    </button>
+                                    <button id="onionSkinBtn" class="mode-toggle-btn onion-skin-btn"
+                                        title="Toggle Onion Skin (Ctrl/⌘ + O)">
+                                        <span class="toggle-label" id="onionSkinLabel">Onion Skin : 0</span>
+                                    </button>
+                                    <button id="onionNextBtn" class="mode-toggle-btn onion-arrow-btn">
+                                        <i data-feather="chevron-right"></i>
+                                    </button>
+                                </div>
+                                <div class="onion-opacity-group">
+                                    <label class="slider-label">Opacity</label>
+                                    <input type="range" id="onionOpacitySlider" min="0" max="255" value="128"
+                                        class="slider" title="Double-click to reset">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="control-section">
-                    <div class="control-header">
-                        <h3>Import</h3>
+            </div>
+
+            <div class="main-content">
+                <div class="grid-section">
+                    <div class="grid-container">
+                        <!-- Static coordinates handled via CSS pseudo-elements -->
+                        <div class="grid" id="pixelGrid"></div>
                     </div>
-                    <div class="control-content">
-                        <!-- First row: Upload and Paste -->
-                        <div class="action-row two">
-                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-                            <button class="btn primary action-btn" id="uploadBtn">
-                                <i data-feather="image" class="btn-icon"></i>
-                                Upload Image
-                            </button>
-                            <button class="btn action-btn" id="pasteBtn">
-                                <i data-feather="clipboard" class="btn-icon"></i>
-                                Paste Image
-                            </button>
-                        </div>
+                    <div class="grid-info">
+                        <span id="activeCount">0</span> / <span id="totalPixels">0</span> pixels active
+                    </div>
 
-                        <!-- Second row: Text and Emoji -->
-                        <div class="action-row two">
-                            <button class="btn action-btn" id="textBtn">
-                                <i data-feather="type" class="btn-icon"></i>
-                                Text
-                            </button>
-                            <button class="btn action-btn" id="emojiBtn">
-                                <i data-feather="smile" class="btn-icon"></i>
-                                Emoji
-                            </button>
-                        </div>
 
-                        <div class="action-row two last">
-                            <input type="file" id="gifUpload" accept=".gif" style="display: none;">
-                            <button class="btn action-btn" id="gifBtn">
+                </div>
+
+                <div class="controls">
+
+                    <div class="history-controls">
+                        <button class="btn history-btn" id="undoBtn">
+                            <i data-feather="arrow-left" class="btn-icon"></i>
+                            Undo
+                        </button>
+                        <button class="btn history-btn" id="redoBtn">
+                            <i data-feather="arrow-right" class="btn-icon"></i>
+                            Redo
+                        </button>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header">
+                            <h3>Brush</h3>
+                        </div>
+                        <div class="control-content">
+                            <div class="brush-controls-row">
+                                <div class="brush-mode">
+                                    <button class="mode-toggle-btn active" id="brushToggleBtn">
+                                        <div class="toggle-indicator" id="brushToggle"></div>
+                                        <span class="toggle-label">Drag to Paint</span>
+                                    </button>
+                                </div>
+                                <div class="selection-mode">
+                                    <button class="mode-toggle-btn" id="selectionToggleBtn">
+                                        <div class="toggle-indicator" id="selectionToggle"></div>
+                                        <span class="toggle-label">Select Mode</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="brush-opacity">
+                                <div class="slider-group">
+                                    <label class="slider-label">Opacity</label>
+                                    <input type="range" id="opacitySlider" min="0" max="255" value="255" class="slider"
+                                        title="Double-click to reset">
+                                    <input type="number" id="opacityValue" min="0" max="255" value="255"
+                                        class="slider-input">
+                                    <button class="eyedropper-btn" id="eyedropperBtn" title="Pick opacity from grid">
+                                        <i data-feather="droplet" class="btn-icon"></i>
+                                    </button>
+                                    <div class="opacity-preview" id="opacityPreview"></div>
+                                </div>
+                            </div>
+                            <!-- Selection Actions (shown only in selection mode) -->
+                            <div class="selection-actions" id="selectionActions" style="display: none;">
+                                <div class="selection-controls-row">
+                                    <button class="arrow-btn" id="moveUpBtn" title="Move Up">
+                                        <i data-feather="arrow-up" class="arrow-icon"></i>
+                                    </button>
+                                    <button class="arrow-btn" id="moveDownBtn" title="Move Down">
+                                        <i data-feather="arrow-down" class="arrow-icon"></i>
+                                    </button>
+                                    <button class="arrow-btn" id="moveLeftBtn" title="Move Left">
+                                        <i data-feather="arrow-left" class="arrow-icon"></i>
+                                    </button>
+                                    <button class="arrow-btn" id="moveRightBtn" title="Move Right">
+                                        <i data-feather="arrow-right" class="arrow-icon"></i>
+                                    </button>
+                                    <div class="selection-separator"></div>
+                                    <button class="arrow-btn" id="selectAllBtn" title="Select All">
+                                        <i data-feather="check-square" class="arrow-icon"></i>
+                                    </button>
+                                    <button class="arrow-btn" id="copySelectionBtn" title="Copy">
+                                        <i data-feather="copy" class="arrow-icon"></i>
+                                    </button>
+                                    <button class="arrow-btn" id="pasteSelectionBtn" title="Paste">
+                                        <i data-feather="clipboard" class="arrow-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header">
+                            <h3>Actions</h3>
+                        </div>
+                        <div class="control-content">
+                            <div class="action-row">
+                                <button class="btn primary action-btn" id="fillBtn">
+                                    <i data-feather="droplet" class="btn-icon"></i>
+                                    Fill
+                                </button>
+                                <button class="btn danger action-btn" id="clearBtn">
+                                    <i data-feather="x" class="btn-icon"></i>
+                                    Clear
+                                </button>
+                                <button class="btn action-btn" id="invertBtn">
+                                    <i data-feather="repeat" class="btn-icon"></i>
+                                    Invert
+                                </button>
+                                <button class="btn action-btn" id="flipHBtn">
+                                    <i data-feather="columns" class="btn-icon"></i>
+                                    Mirror
+                                </button>
+                                <button class="btn action-btn" id="flipVBtn"><i data-feather="columns" class="btn-icon"
+                                        style="transform: rotate(90deg); transform-origin: center;"></i>
+
+                                    Flip
+                                </button>
+                                <button class="btn action-btn" id="rotateBtn">
+                                    <i data-feather="rotate-cw" class="btn-icon"></i>
+                                    Rotate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header">
+                            <h3>Import</h3>
+                        </div>
+                        <div class="control-content">
+                            <!-- First row: Upload and Paste -->
+                            <div class="action-row two">
+                                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                                <button class="btn primary action-btn" id="uploadBtn">
+                                    <i data-feather="image" class="btn-icon"></i>
+                                    Upload Image
+                                </button>
+                                <button class="btn action-btn" id="pasteBtn">
+                                    <i data-feather="clipboard" class="btn-icon"></i>
+                                    Paste Image
+                                </button>
+                            </div>
+
+                            <!-- Second row: Text and Emoji -->
+                            <div class="action-row two">
+                                <button class="btn action-btn" id="textBtn">
+                                    <i data-feather="type" class="btn-icon"></i>
+                                    Text
+                                </button>
+                                <button class="btn action-btn" id="emojiBtn">
+                                    <i data-feather="smile" class="btn-icon"></i>
+                                    Emoji
+                                </button>
+                            </div>
+
+                            <div class="action-row two">
+                                <input type="file" id="gifUpload" accept=".gif" style="display: none;">
+                                <button class="btn action-btn" id="gifBtn">
                                     <i data-feather="film" class="btn-icon"></i>
-                                GIF
-                            </button>
-                            <button class="btn action-btn" id="binaryBtn">
-                                <i data-feather="file-text" class="btn-icon"></i>
-                                Raw Data
-                            </button>
-                        </div>
-
-                        <!-- Advanced Import Button -->
-                        <div class="action-row single last" style="display: none;">
-                            <button class="btn primary action-btn" id="advancedImportBtn">
-                                <i data-feather="settings" class="btn-icon"></i>
-                                Advanced Import
-                            </button>
-                        </div>
-                        
-                        <!-- Text Input Modal -->
-                        <div class="text-modal" id="textModal" style="display: none;">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h3>Text to Pixel Art</h3>
-                                    <button class="modal-close" id="closeTextModal">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="input-group top-group">
-                                        <label>Text:</label>
-                                        <input type="text" id="textInput" placeholder="Enter text..." maxlength="10">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Font Size:</label>
-                                        <input type="range" id="fontSizeSlider" min="8" max="30" value="10" class="slider" title="Double-click to reset">
-                                        <input type="number" id="fontSizeValue" min="8" max="30" value="10" class="slider-input">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Font:</label>
-                                        <select id="fontType" class="mode-select">
-                                            <option value="Ndot57">Ndot</option>
-                                            <option value="NType82">NType</option>
-                                            <option value="Ranyth">Ranyth</option>
-                                        </select>
-                                    </div>
-                                    <button class="btn primary" id="generateTextBtn">Generate</button>
-                                </div>
+                                    GIF
+                                </button>
+                                <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+                                <button class="btn action-btn" id="videoBtn">
+                                    <i data-feather="video" class="btn-icon"></i>
+                                    Video
+                                </button>
                             </div>
-                        </div>
+                            <div class="action-row single last">
+                                <button class="btn action-btn" id="binaryBtn">
+                                    <i data-feather="file-text" class="btn-icon"></i>
+                                    Raw Data
+                                </button>
+                            </div>
 
-                        <!-- Emoji Input Modal -->
-                        <div class="text-modal" id="emojiModal" style="display: none;">
-                            <div class="modal-content emoji-modal-content">
-                                <div class="modal-header">
-                                    <h3>Emoji to Pixel Art</h3>
-                                    <button class="modal-close" id="closeEmojiModal">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="input-group top-group">
-                                        <label>Search Emoji:</label>
-                                        <input type="text" id="emojiSearch" placeholder="Search emojis...">
+                            <!-- Advanced Import Button -->
+                            <div class="action-row single last" style="display: none;">
+                                <button class="btn primary action-btn" id="advancedImportBtn">
+                                    <i data-feather="settings" class="btn-icon"></i>
+                                    Advanced Import
+                                </button>
+                            </div>
+
+                            <!-- Export & Share Button -->
+                            <div class="export-button-section" style="margin-top: 20px;">
+                                <button class="btn primary" id="exportBtn"
+                                    style="width: 100%; justify-content: center;">
+                                    <i data-feather="download" class="btn-icon"></i>
+                                    Export & Share
+                                </button>
+                            </div>
+
+                            <!-- Text Input Modal -->
+                            <div class="text-modal" id="textModal" style="display: none;">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>Text to Pixel Art</h3>
+                                        <button class="modal-close" id="closeTextModal">×</button>
                                     </div>
-                                    <div class="emoji-categories-container">
-                                        <div class="emoji-categories">
-                                            <button class="category-btn active" data-category="smileys">😊</button>
-                                            <button class="category-btn" data-category="people">👤</button>
-                                            <button class="category-btn" data-category="animals">🐱</button>
-                                            <button class="category-btn" data-category="food">🍕</button>
-                                            <button class="category-btn" data-category="travel">🚗</button>
-                                            <button class="category-btn" data-category="activities">⚽</button>
-                                            <button class="category-btn" data-category="objects">💡</button>
-                                            <button class="category-btn" data-category="symbols">🤍</button>
-                                            <button class="category-btn" data-category="flags">🏳️</button>
+                                    <div class="modal-body">
+                                        <div class="input-group top-group">
+                                            <label>Text:</label>
+                                            <input type="text" id="textInput" placeholder="Enter text..."
+                                                maxlength="10">
                                         </div>
-                                    </div>
-                                    <div class="emoji-selector">
-                                        <div class="emoji-grid" id="emojiGrid">
-                                            <!-- Emojis will be populated by JavaScript -->
-                                        </div>
-                                    </div>
-                                    <div class="selected-emoji">
-                                        <span class="selected-emoji-display">😀</span>
-                                        <span class="selected-emoji-label">Selected</span>
-                                    </div>
-                                    <div class="emoji-controls">
                                         <div class="input-group">
-                                            <label>Size:</label>
-                                            <input type="range" id="emojiSizeSlider" min="12" max="24" value="20" class="slider" title="Double-click to reset">
-                                            <input type="number" id="emojiSizeValue" min="12" max="24" value="20" class="slider-input">
+                                            <label>Font Size:</label>
+                                            <input type="range" id="fontSizeSlider" min="8" max="30" value="10"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="fontSizeValue" min="8" max="30" value="10"
+                                                class="slider-input">
                                         </div>
-                                        <div class="emoji-mode" id="emojiMode">
-                                            <div class="emoji-toggle active" id="emojiToggle"></div>
-                                            <span class="emoji-label">Noto style</span>
+                                        <div class="input-group">
+                                            <label>Font:</label>
+                                            <select id="fontType" class="mode-select">
+                                                <option value="Ndot57">Ndot</option>
+                                                <option value="NType82">NType</option>
+                                                <option value="Ranyth">Ranyth</option>
+                                            </select>
                                         </div>
-                                    </div>
-                                    <button class="btn primary" id="generateEmojiBtn">Generate</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- GIF Import Modal -->
-                        <div class="text-modal" id="gifModal" style="display: none;">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h3>Import GIF Animation</h3>
-                                    <button class="modal-close" id="closeGifModal">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="gif-preview" id="gifPreview">
-                                        <div class="gif-info">
-                                            <span id="gifFrameCount">0 frames</span>
-                                            <span id="gifDimensions">0x0</span>
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Brightness:</label>
-                                        <input type="range" id="gifBrightnessSlider" min="-100" max="100" value="0" class="slider" title="Double-click to reset">
-                                        <input type="number" id="gifBrightnessValue" min="-100" max="100" value="0" class="slider-input">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Contrast:</label>
-                                        <input type="range" id="gifContrastSlider" min="0" max="200" value="100" class="slider" title="Double-click to reset">
-                                        <input type="number" id="gifContrastValue" min="0" max="200" value="100" class="slider-input">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Threshold:</label>
-                                        <input type="range" id="gifThresholdSlider" min="0" max="255" value="128" class="slider" title="Double-click to reset">
-                                        <input type="number" id="gifThresholdValue" min="0" max="255" value="128" class="slider-input">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Invert Colors:</label>
-                                        <input type="checkbox" id="gifInvertColors" class="checkbox-input">
-                                        <span class="checkbox-label">Invert</span>
-                                    </div>
-                                    <button class="btn primary" id="processGifBtn">Process GIF</button>
-                                    <div class="gif-progress" id="gifProgress" style="display: none;">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" id="gifProgressFill"></div>
-                                        </div>
-                                        <span class="progress-text" id="gifProgressText">Processing frames...</span>
+                                        <button class="btn primary" id="generateTextBtn">Generate</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Advanced Import Modal -->
-                        <div class="text-modal" id="advancedImportModal" style="display: none;">
-                            <div class="modal-content advanced-import-modal-content">
-                                <div class="modal-header">
-                                    <h3>Advanced Image Import</h3>
-                                    <button class="modal-close" id="closeAdvancedImportModal">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <!-- Import Method Tabs -->
-                                    <div class="import-tabs">
-                                        <button class="import-tab active" data-tab="upload">
-                                            <i data-feather="upload" class="tab-icon"></i>
-                                            Upload
-                                        </button>
-                                        <button class="import-tab" data-tab="paste">
-                                            <i data-feather="clipboard" class="tab-icon"></i>
-                                            Paste
-                                        </button>
-                                        <button class="import-tab" data-tab="url">
-                                            <i data-feather="link" class="tab-icon"></i>
-                                            URL
-                                        </button>
+                            <!-- Emoji Input Modal -->
+                            <div class="text-modal" id="emojiModal" style="display: none;">
+                                <div class="modal-content emoji-modal-content">
+                                    <div class="modal-header">
+                                        <h3>Emoji to Pixel Art</h3>
+                                        <button class="modal-close" id="closeEmojiModal">×</button>
                                     </div>
-
-                                    <!-- Preview Section -->
-                                    <div class="advanced-preview-section">
-                                        <div class="preview-container">
-                                            <canvas id="advancedPreviewCanvas" width="250" height="250"></canvas>
-                                            <div class="matrix-overlay" id="matrixOverlay">
-                                                <div class="overlay-grid" id="overlayGrid"></div>
+                                    <div class="modal-body">
+                                        <div class="input-group top-group">
+                                            <label>Search Emoji:</label>
+                                            <input type="text" id="emojiSearch" placeholder="Search emojis...">
+                                        </div>
+                                        <div class="emoji-categories-container">
+                                            <div class="emoji-categories">
+                                                <button class="category-btn active" data-category="smileys">😊</button>
+                                                <button class="category-btn" data-category="people">👤</button>
+                                                <button class="category-btn" data-category="animals">🐱</button>
+                                                <button class="category-btn" data-category="food">🍕</button>
+                                                <button class="category-btn" data-category="travel">🚗</button>
+                                                <button class="category-btn" data-category="activities">⚽</button>
+                                                <button class="category-btn" data-category="objects">💡</button>
+                                                <button class="category-btn" data-category="symbols">🤍</button>
+                                                <button class="category-btn" data-category="flags">🏳️</button>
                                             </div>
                                         </div>
-                                        <div class="preview-info">
-                                            <span id="advancedPreviewInfo">No image loaded</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Import Method Content -->
-                                    <div class="import-tab-content active" id="uploadTab">
-                                        <div class="upload-area" id="uploadArea">
-                                            <div class="upload-content">
-                                                <i data-feather="upload-cloud" class="upload-icon"></i>
-                                                <p>Drag & drop an image here or click to browse</p>
-                                                <input type="file" id="advancedImageUpload" accept="image/*" style="display: none;">
+                                        <div class="emoji-selector">
+                                            <div class="emoji-grid" id="emojiGrid">
+                                                <!-- Emojis will be populated by JavaScript -->
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div class="import-tab-content" id="pasteTab">
-                                        <div class="paste-area">
-                                            <div class="paste-content">
-                                                <i data-feather="clipboard" class="paste-icon"></i>
-                                                <p>Click the button below to paste from clipboard</p>
-                                                <button class="btn" id="advancedPasteBtn">
-                                                    <i data-feather="clipboard" class="btn-icon"></i>
-                                                    Paste Image
-                                                </button>
-                                            </div>
+                                        <div class="selected-emoji">
+                                            <span class="selected-emoji-display">😀</span>
+                                            <span class="selected-emoji-label">Selected</span>
                                         </div>
-                                    </div>
-
-                                    <div class="import-tab-content" id="urlTab">
-                                        <div class="url-area">
+                                        <div class="emoji-controls">
                                             <div class="input-group">
-                                                <label>Image URL:</label>
-                                                <input type="url" id="imageUrlInput" placeholder="https://example.com/image.jpg">
+                                                <label>Size:</label>
+                                                <input type="range" id="emojiSizeSlider" min="12" max="24" value="20"
+                                                    class="slider" title="Double-click to reset">
+                                                <input type="number" id="emojiSizeValue" min="12" max="24" value="20"
+                                                    class="slider-input">
                                             </div>
-                                            <button class="btn" id="loadUrlBtn">
-                                                <i data-feather="download" class="btn-icon"></i>
-                                                Load Image
+                                            <div class="emoji-mode" id="emojiMode">
+                                                <div class="emoji-toggle active" id="emojiToggle"></div>
+                                                <span class="emoji-label">Noto style</span>
+                                            </div>
+                                        </div>
+                                        <button class="btn primary" id="generateEmojiBtn">Generate</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- GIF Import Modal -->
+                            <div class="text-modal" id="gifModal" style="display: none;">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>Import GIF Animation</h3>
+                                        <button class="modal-close" id="closeGifModal">×</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="gif-preview" id="gifPreview">
+                                            <div class="gif-info">
+                                                <span id="gifFrameCount">0 frames</span>
+                                                <span id="gifDimensions">0x0</span>
+                                            </div>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Brightness:</label>
+                                            <input type="range" id="gifBrightnessSlider" min="-100" max="100" value="0"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="gifBrightnessValue" min="-100" max="100" value="0"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Contrast:</label>
+                                            <input type="range" id="gifContrastSlider" min="0" max="200" value="100"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="gifContrastValue" min="0" max="200" value="100"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Threshold:</label>
+                                            <input type="range" id="gifThresholdSlider" min="0" max="255" value="128"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="gifThresholdValue" min="0" max="255" value="128"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Invert Colors:</label>
+                                            <input type="checkbox" id="gifInvertColors" class="checkbox-input">
+                                            <span class="checkbox-label">Invert</span>
+                                        </div>
+                                        <button class="btn primary" id="processGifBtn">Process GIF</button>
+                                        <div class="gif-progress" id="gifProgress" style="display: none;">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" id="gifProgressFill"></div>
+                                            </div>
+                                            <span class="progress-text" id="gifProgressText">Processing
+                                                frames...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Video Import Modal -->
+                            <div class="text-modal" id="videoModal" style="display: none;">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>Import Video Animation</h3>
+                                        <button class="modal-close" id="closeVideoModal">×</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <button class="btn secondary" id="changeVideoBtn"
+                                            style="margin-bottom: 10px; width: 100%;">
+                                            <i data-feather="upload" class="btn-icon"></i> Change Video File
+                                        </button>
+                                        <div class="gif-preview" id="videoPreview">
+                                            <div class="gif-info">
+                                                <span id="videoDuration">0s</span>
+                                                <span id="videoDimensions">0x0</span>
+                                            </div>
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Frame Rate (FPS):</label>
+                                            <input type="range" id="videoFpsSlider" min="1" max="24" value="10"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="videoFpsValue" min="1" max="24" value="10"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Brightness:</label>
+                                            <input type="range" id="videoBrightnessSlider" min="-100" max="100"
+                                                value="0" class="slider" title="Double-click to reset">
+                                            <input type="number" id="videoBrightnessValue" min="-100" max="100"
+                                                value="0" class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Contrast:</label>
+                                            <input type="range" id="videoContrastSlider" min="0" max="200" value="100"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="videoContrastValue" min="0" max="200" value="100"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Threshold:</label>
+                                            <input type="range" id="videoThresholdSlider" min="0" max="255" value="128"
+                                                class="slider" title="Double-click to reset">
+                                            <input type="number" id="videoThresholdValue" min="0" max="255" value="128"
+                                                class="slider-input">
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Invert Colors:</label>
+                                            <input type="checkbox" id="videoInvertColors" class="checkbox-input">
+                                            <span class="checkbox-label">Invert</span>
+                                        </div>
+                                        <button class="btn primary" id="processVideoBtn">Process Video</button>
+                                        <div class="gif-progress" id="videoProgress" style="display: none;">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" id="videoProgressFill"></div>
+                                            </div>
+                                            <span class="progress-text" id="videoProgressText">Processing
+                                                frames...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Import Modal -->
+                            <div class="text-modal" id="advancedImportModal" style="display: none;">
+                                <div class="modal-content advanced-import-modal-content">
+                                    <div class="modal-header">
+                                        <h3>Advanced Image Import</h3>
+                                        <button class="modal-close" id="closeAdvancedImportModal">×</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <!-- Import Method Tabs -->
+                                        <div class="import-tabs">
+                                            <button class="import-tab active" data-tab="upload">
+                                                <i data-feather="upload" class="tab-icon"></i>
+                                                Upload
+                                            </button>
+                                            <button class="import-tab" data-tab="paste">
+                                                <i data-feather="clipboard" class="tab-icon"></i>
+                                                Paste
+                                            </button>
+                                            <button class="import-tab" data-tab="url">
+                                                <i data-feather="link" class="tab-icon"></i>
+                                                URL
                                             </button>
                                         </div>
-                                    </div>
 
-                                    <!-- Image Processing Controls -->
-                                    <div class="advanced-controls" id="advancedControls" style="display: none;">
-                                        <h4>Image Processing</h4>
-                                        
-                                        <div class="control-grid">
-                                            <div class="input-group">
-                                                <label>Brightness:</label>
-                                                <input type="range" id="advancedBrightnessSlider" min="-100" max="100" value="0" class="slider" title="Double-click to reset">
-                                                <input type="number" id="advancedBrightnessValue" min="-100" max="100" value="0" class="slider-input">
+                                        <!-- Preview Section -->
+                                        <div class="advanced-preview-section">
+                                            <div class="preview-container">
+                                                <canvas id="advancedPreviewCanvas" width="250" height="250"></canvas>
+                                                <div class="matrix-overlay" id="matrixOverlay">
+                                                    <div class="overlay-grid" id="overlayGrid"></div>
+                                                </div>
                                             </div>
-                                            
-                                            <div class="input-group">
-                                                <label>Contrast:</label>
-                                                <input type="range" id="advancedContrastSlider" min="0" max="200" value="100" class="slider" title="Double-click to reset">
-                                                <input type="number" id="advancedContrastValue" min="0" max="200" value="100" class="slider-input">
-                                            </div>
-                                            
-                                            <div class="input-group">
-                                                <label>Threshold:</label>
-                                                <input type="range" id="advancedThresholdSlider" min="0" max="255" value="128" class="slider" title="Double-click to reset">
-                                                <input type="number" id="advancedThresholdValue" min="0" max="255" value="128" class="slider-input">
-                                            </div>
-                                            
-                                            <div class="input-group checkbox-group">
-                                                <label>Invert Colors:</label>
-                                                <input type="checkbox" id="advancedInvertColors" class="checkbox-input">
-                                                <span class="checkbox-label">Invert</span>
+                                            <div class="preview-info">
+                                                <span id="advancedPreviewInfo">No image loaded</span>
                                             </div>
                                         </div>
 
-                                        <h4>Scaling & Position</h4>
-                                        
-                                        <div class="control-grid">
-                                            <div class="input-group">
-                                                <label>Fit Mode:</label>
-                                                <select id="fitMode" class="mode-select">
-                                                    <option value="fill">Fill (crop to fit)</option>
-                                                    <option value="fit" selected>Fit (maintain aspect)</option>
-                                                    <option value="stretch">Stretch (ignore aspect)</option>
-                                                    <option value="center">Center (actual size)</option>
-                                                </select>
-                                            </div>
-                                            
-                                            <div class="input-group" id="positionControls" style="display: none;">
-                                                <label>Position:</label>
-                                                <div class="position-grid">
-                                                    <button class="position-btn" data-position="top-left">↖</button>
-                                                    <button class="position-btn" data-position="top-center">↑</button>
-                                                    <button class="position-btn" data-position="top-right">↗</button>
-                                                    <button class="position-btn" data-position="center-left">←</button>
-                                                    <button class="position-btn active" data-position="center">●</button>
-                                                    <button class="position-btn" data-position="center-right">→</button>
-                                                    <button class="position-btn" data-position="bottom-left">↙</button>
-                                                    <button class="position-btn" data-position="bottom-center">↓</button>
-                                                    <button class="position-btn" data-position="bottom-right">↘</button>
+                                        <!-- Import Method Content -->
+                                        <div class="import-tab-content active" id="uploadTab">
+                                            <div class="upload-area" id="uploadArea">
+                                                <div class="upload-content">
+                                                    <i data-feather="upload-cloud" class="upload-icon"></i>
+                                                    <p>Drag & drop an image here or click to browse</p>
+                                                    <input type="file" id="advancedImageUpload" accept="image/*"
+                                                        style="display: none;">
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <!-- Action Buttons -->
-                                    <div class="advanced-modal-actions">
-                                        <button class="btn" id="resetAdvancedBtn">
-                                            <i data-feather="rotate-ccw" class="btn-icon"></i>
-                                            Reset
-                                        </button>
-                                        <button class="btn primary" id="applyAdvancedBtn" disabled>
-                                            <i data-feather="check" class="btn-icon"></i>
-                                            Apply to Grid
-                                        </button>
+                                        <div class="import-tab-content" id="pasteTab">
+                                            <div class="paste-area">
+                                                <div class="paste-content">
+                                                    <i data-feather="clipboard" class="paste-icon"></i>
+                                                    <p>Click the button below to paste from clipboard</p>
+                                                    <button class="btn" id="advancedPasteBtn">
+                                                        <i data-feather="clipboard" class="btn-icon"></i>
+                                                        Paste Image
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="import-tab-content" id="urlTab">
+                                            <div class="url-area">
+                                                <div class="input-group">
+                                                    <label>Image URL:</label>
+                                                    <input type="url" id="imageUrlInput"
+                                                        placeholder="https://example.com/image.jpg">
+                                                </div>
+                                                <button class="btn" id="loadUrlBtn">
+                                                    <i data-feather="download" class="btn-icon"></i>
+                                                    Load Image
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Image Processing Controls -->
+                                        <div class="advanced-controls" id="advancedControls" style="display: none;">
+                                            <h4>Image Processing</h4>
+                                            <div class="control-grid">
+                                                <div class="input-group">
+                                                    <label>Brightness:</label>
+                                                    <input type="range" id="advancedBrightnessSlider" min="-100"
+                                                        max="100" value="0" class="slider"
+                                                        title="Double-click to reset">
+                                                    <input type="number" id="advancedBrightnessValue" min="-100"
+                                                        max="100" value="0" class="slider-input">
+                                                </div>
+
+                                                <div class="input-group">
+                                                    <label>Contrast:</label>
+                                                    <input type="range" id="advancedContrastSlider" min="0" max="200"
+                                                        value="100" class="slider" title="Double-click to reset">
+                                                    <input type="number" id="advancedContrastValue" min="0" max="200"
+                                                        value="100" class="slider-input">
+                                                </div>
+
+                                                <div class="input-group">
+                                                    <label>Threshold:</label>
+                                                    <input type="range" id="advancedThresholdSlider" min="0" max="255"
+                                                        value="128" class="slider" title="Double-click to reset">
+                                                    <input type="number" id="advancedThresholdValue" min="0" max="255"
+                                                        value="128" class="slider-input">
+                                                </div>
+
+                                                <div class="input-group checkbox-group">
+                                                    <label>Invert Colors:</label>
+                                                    <input type="checkbox" id="advancedInvertColors"
+                                                        class="checkbox-input">
+                                                    <span class="checkbox-label">Invert</span>
+                                                </div>
+                                            </div>
+                                            <div class="advanced-actions">
+                                                <div class="input-group nomargin">
+                                                    <label>Fit Mode:</label>
+                                                    <select id="fitMode" class="mode-select">
+                                                        <option value="fit">Fit (Whole Image)</option>
+                                                        <option value="fill">Fill (Crop)</option>
+                                                        <option value="stretch">Stretch</option>
+                                                        <option value="center">Center (No Scale)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="position-controls" id="positionControls"
+                                                    style="display: none;">
+                                                    <label>Position:</label>
+                                                    <div class="position-grid">
+                                                        <button class="position-btn" data-position="top-left">↖</button>
+                                                        <button class="position-btn"
+                                                            data-position="top-center">↑</button>
+                                                        <button class="position-btn"
+                                                            data-position="top-right">↗</button>
+                                                        <button class="position-btn"
+                                                            data-position="center-left">←</button>
+                                                        <button class="position-btn active"
+                                                            data-position="center">·</button>
+                                                        <button class="position-btn"
+                                                            data-position="center-right">→</button>
+                                                        <button class="position-btn"
+                                                            data-position="bottom-left">↙</button>
+                                                        <button class="position-btn"
+                                                            data-position="bottom-center">↓</button>
+                                                        <button class="position-btn"
+                                                            data-position="bottom-right">↘</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn" id="resetAdvancedBtn">Reset</button>
+                                                <button class="btn primary" id="applyAdvancedBtn" disabled>Apply to
+                                                    Grid</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
+                    </div>
 
-                        <!-- Delete All Frames Confirmation Modal -->
-                        <div class="text-modal danger-modal" id="deleteAllModal" style="display: none;">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h3><i data-feather="alert-triangle" class="danger-icon"></i> Delete All Frames</h3>
-                                    <button class="modal-close" id="closeDeleteAllModal">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <p class="danger-text">Are you sure you want to delete <strong>ALL frames</strong>?</p>
-                                    <p class="danger-subtext">This action cannot be undone and will reset your animation to a single empty frame.</p>
-                                    <div class="danger-buttons">
-                                        <button class="btn" id="cancelDeleteAllBtn">Cancel</button>
-                                        <button class="btn danger" id="confirmDeleteAllBtn">Delete All</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                </div>
+            </div>
 
-                        <!-- Binary Import Section -->
-                        <div class="import-controls" id="binaryImportControls" style="display: none;">
-                            <!-- File Upload Drop Zone -->
-                            <div class="file-drop-zone" id="jsonDropZone">
-                                <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-                                <i data-feather="upload-cloud" class="drop-icon"></i>
-                                <p class="drop-text">Drop JSON file here or click to browse</p>
-                                <p class="drop-subtext">Supports .json files with Glyph Matrix format</p>
-                            </div>
-
-                            <div class="separator">
-                                <span>OR</span>
-                            </div>
-
-                            <div class="input-group nomargin">
-                                <textarea id="binaryInput" placeholder="Paste raw pixel data or JSON here..." rows="4"></textarea>
-                            </div>
-                            <button class="btn last" id="applyBinaryBtn">
-                                <i data-feather="check" class="btn-icon"></i>
-                                Apply Pixel Data
-                            </button>
-                        </div>
-
-                        <!-- Image Import Controls -->
-                        <div class="import-controls" id="importControls" style="display: none;">
-                            <div class="slider-group">
-                                <label class="slider-label">Brightness</label>
-                                <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="slider" title="Double-click to reset">
-                                <input type="number" id="brightnessValue" min="-100" max="100" value="0" class="slider-input">
-                            </div>
-                            <div class="slider-group">
-                                <label class="slider-label">Contrast</label>
-                                <input type="range" id="contrastSlider" min="0" max="200" value="100" class="slider" title="Double-click to reset">
-                                <input type="number" id="contrastValue" min="0" max="200" value="100" class="slider-input">
-                            </div>
-                            <button class="btn last" id="applyBtn">
-                                <i data-feather="check" class="btn-icon"></i>
-                                Apply Settings
-                            </button>
+            <!-- Delete All Frames Confirmation Modal -->
+            <div class="text-modal danger-modal" id="deleteAllModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i data-feather="alert-triangle" class="danger-icon"></i> Delete All Frames</h3>
+                        <button class="modal-close" id="closeDeleteAllModal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="danger-text">Are you sure you want to delete <strong>ALL frames</strong>?
+                        </p>
+                        <p class="danger-subtext">This action cannot be undone and will reset your animation
+                            to a single empty frame.</p>
+                        <div class="danger-buttons">
+                            <button class="btn" id="cancelDeleteAllBtn">Cancel</button>
+                            <button class="btn danger" id="confirmDeleteAllBtn">Delete All</button>
                         </div>
                     </div>
                 </div>
-
-                
-                <div class="export-button-section">
-                    <button class="btn primary" id="exportBtn">
-                        <i data-feather="download" class="btn-icon"></i>
-                        Export & Share
-                    </button>
-                </div>
             </div>
-        </div>
+
+            <!-- Binary Import Section -->
+            <div class="import-controls" id="binaryImportControls" style="display: none;">
+                <!-- File Upload Drop Zone -->
+                <div class="file-drop-zone" id="jsonDropZone">
+                    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+                    <i data-feather="upload-cloud" class="drop-icon"></i>
+                    <p class="drop-text">Drop JSON file here or click to browse</p>
+                    <p class="drop-subtext">Supports .json files with Glyph Matrix format</p>
+                </div>
+
+                <div class="separator">
+                    <span>OR</span>
+                </div>
+
+                <div class="input-group nomargin">
+                    <textarea id="binaryInput" placeholder="Paste raw pixel data or JSON here..." rows="4"></textarea>
+                </div>
+                <button class="btn last" id="applyBinaryBtn">
+                    <i data-feather="check" class="btn-icon"></i>
+                    Apply Pixel Data
+                </button>
+            </div>
+
+            <!-- Image Import Controls -->
+            <div class="import-controls" id="importControls" style="display: none;">
+                <div class="slider-group">
+                    <label class="slider-label">Brightness</label>
+                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="slider"
+                        title="Double-click to reset">
+                    <input type="number" id="brightnessValue" min="-100" max="100" value="0" class="slider-input">
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Contrast</label>
+                    <input type="range" id="contrastSlider" min="0" max="200" value="100" class="slider"
+                        title="Double-click to reset">
+                    <input type="number" id="contrastValue" min="0" max="200" value="100" class="slider-input">
+                </div>
+                <button class="btn last" id="applyBtn">
+                    <i data-feather="check" class="btn-icon"></i>
+                    Apply Settings
+                </button>
+            </div>
     </div>
+    </div>
+
+
+
+    </div>
+    </div>
+    </div>
+
 
     <!-- Export Modal -->
     <div class="text-modal" id="exportModal" style="display: none;">
@@ -910,9 +1086,11 @@
                             <div class="setting-group" id="qualityGroup">
                                 <div class="slider-group">
                                     <label class="slider-label">Quality</label>
-                                    <input type="range" id="imageQuality" min="10" max="100" value="90" class="export-slider">
+                                    <input type="range" id="imageQuality" min="10" max="100" value="90"
+                                        class="export-slider">
                                     <div class="input-with-unit">
-                                        <input type="number" id="imageQualityValue" min="10" max="100" value="90" class="export-input">
+                                        <input type="number" id="imageQualityValue" min="10" max="100" value="90"
+                                            class="export-input">
                                         <span class="input-unit">%</span>
                                     </div>
                                 </div>
@@ -942,8 +1120,10 @@
                             <div class="setting-group">
                                 <div class="slider-group">
                                     <label class="slider-label">Brightness Threshold</label>
-                                    <input type="range" id="opacityThreshold" min="0" max="255" value="0" class="export-slider">
-                                    <input type="number" id="opacityThresholdValue" min="0" max="255" value="0" class="export-input">
+                                    <input type="range" id="opacityThreshold" min="0" max="255" value="0"
+                                        class="export-slider">
+                                    <input type="number" id="opacityThresholdValue" min="0" max="255" value="0"
+                                        class="export-input">
                                 </div>
                             </div>
                         </div>
@@ -976,6 +1156,7 @@
                                 <select id="animationFormat" class="export-select">
                                     <option value="gif">GIF</option>
                                     <option value="webm">WebM</option>
+                                    <option value="mp4">MP4</option>
                                 </select>
                             </div>
 
@@ -1105,6 +1286,9 @@
         </div>
     </div>
 
+    </main>
+    </div>
+
     <!-- Keyboard Shortcuts Modal -->
     <div class="shortcuts-modal" id="shortcutsModal" style="display: none;">
         <div class="modal-content shortcuts-content">
@@ -1128,7 +1312,31 @@
                         <span class="shortcut-keys">Esc</span>
                     </div>
                 </div>
-                
+
+                <div class="shortcut-group">
+                    <h4>Animation</h4>
+                    <div class="shortcut-item">
+                        <span>Previous Frame</span>
+                        <span class="shortcut-keys">[</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Next Frame</span>
+                        <span class="shortcut-keys">]</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>New Frame (Left)</span>
+                        <span class="shortcut-keys">Ctrl/⌘ + [</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>New Frame (Right)</span>
+                        <span class="shortcut-keys">Ctrl/⌘ + ]</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Delete Frame</span>
+                        <span class="shortcut-keys">Ctrl/⌘ + Del</span>
+                    </div>
+                </div>
+
                 <div class="shortcut-group">
                     <h4>Selection Mode</h4>
                     <div class="shortcut-item">
@@ -1163,4 +1371,5 @@
     <script src="emojiNames.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>

@@ -10,6 +10,15 @@
 
 ### Latest Updates
 
+*Thanks to [Rahul Janardhanan](https://x.com/raonehere) for contributing these features!*
+
+- 📁 **Project Management** - Manage multiple projects with a collapsible sidebar
+- 🔄 **Playback Modes** - Choose between Cycle, Reverse, Ping-Pong, and Play Once
+- 👻 **Onion Skin** - Preview previous (blue) and next (red) frames while editing
+- 🎬 **Video Import** - Import video files and convert them to matrix animations
+
+### Previous Updates
+
 - 🎯 **Advanced Selection Mode** - Select and manipulate specific areas of your artwork
 - 🛠️ **Selection Operations** - Move, copy/paste, fill/clear selected regions
 - ⌨️ **Keyboard Shortcuts** - Speed up your workflow with intuitive hotkeys
@@ -17,7 +26,7 @@
 
 [![Selection Feature](/img/media/select_feature.gif)](https://pauwma.github.io/GlyphMatrixEditor/)
 
-### Other Recent Updates
+### Other Updates
 
 - 💾 **Auto-Save & Restore** - Never lose your work with automatic session saving and restore prompts
 - 🎨 **Eyedropper Tool** - Sample pixel opacity values from your existing artwork
@@ -42,7 +51,10 @@
 
 ### 🎯 Core Functionality
 - **25-Pixel Matrix Grid**: Matches the exact Nothing Phone 3 Glyph Matrix shape pattern
+- **Project Management**: Organize multiple projects with a collapsible sidebar (desktop)
 - **Multi-Frame Animation**: Create smooth animations with customizable frame duration (50-1000ms)
+- **Playback Modes**: Cycle, Reverse, Ping-Pong, and Play Once options
+- **Onion Skin**: Preview adjacent frames while editing (blue = past, red = future)
 - **Real-time Preview**: See your animations play as you create them
 - **Undo/Redo System**: Full history management for worry-free editing
 
@@ -55,6 +67,7 @@
 
 ### ⬇️ Import Options
 - **Images**: Convert any image to pixel art with automatic brightness/contrast adjustment
+- **Videos**: Import video files and extract frames as animations
 - **Text-to-Pixel**: Convert text using custom pixel fonts (Ndot57, NType82, Ranyth)
 - **Emoji-to-Pixel**: Transform emojis into pixel art
 - **GIFs**: Transform animations directly into the matrix
@@ -66,6 +79,14 @@
 - **Pixel Data**: Share matrix design in pixel data format
 
 <br/>
+
+---
+
+## 👥 Contributors
+
+Thanks to these amazing people for their contributions:
+
+- [Rahul Janardhanan](https://x.com/raonehere) - Project management, playback modes, onion skin, video import
 
 ---
 
