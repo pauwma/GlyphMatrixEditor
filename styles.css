@@ -149,6 +149,7 @@ body {
     transition: all 0.2s;
     position: relative;
     font-size: 0.9rem;
+    text-decoration: none;
 }
 
 .nav-tab .tab-icon {
