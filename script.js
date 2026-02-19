@@ -4817,12 +4817,8 @@ function shouldProcessShortcut() {
 
 function updateOnionSkinLabel() {
     if (!onionSkinLabel) return;
-
-    if (onionSkinFrames === 0) {
-        onionSkinLabel.textContent = 'Onion Skin : 0'; // Explicitly 0, or logic handles OFF
-    } else {
-        onionSkinLabel.textContent = `Onion Skin : ${onionSkinFrames}`;
-    }
+    const countEl = document.getElementById('onionSkinCount');
+    if (countEl) countEl.textContent = onionSkinFrames;
 }
 
 function modifyOnionSkinFrames(delta) {

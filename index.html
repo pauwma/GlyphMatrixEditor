@@ -381,7 +381,7 @@
                                     </button>
                                     <button id="onionSkinBtn" class="mode-toggle-btn onion-skin-btn"
                                         title="Toggle Onion Skin (Ctrl/⌘ + O)">
-                                        <span class="toggle-label" id="onionSkinLabel">Onion Skin : 0</span>
+                                        <span class="toggle-label" id="onionSkinLabel"><span class="onion-label-full">Onion Skin</span><span class="onion-label-short">Onion</span> : <span id="onionSkinCount">0</span></span>
                                     </button>
                                     <button id="onionNextBtn" class="mode-toggle-btn onion-arrow-btn">
                                         <i data-feather="chevron-right"></i>
@@ -567,6 +567,26 @@
                                 <button class="btn action-btn" id="binaryBtn">
                                     <i data-feather="file-text" class="btn-icon"></i>
                                     Raw Data
+                                </button>
+                            </div>
+
+                            <!-- Binary Import Section -->
+                            <div class="import-controls" id="binaryImportControls" style="display: none;">
+                                <div class="file-drop-zone" id="jsonDropZone">
+                                    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+                                    <i data-feather="upload-cloud" class="drop-icon"></i>
+                                    <p class="drop-text">Drop JSON file here or click to browse</p>
+                                    <p class="drop-subtext">Supports .json files with Glyph Matrix format</p>
+                                </div>
+                                <div class="separator">
+                                    <span>OR</span>
+                                </div>
+                                <div class="input-group nomargin">
+                                    <textarea id="binaryInput" placeholder="Paste raw pixel data or JSON here..." rows="4"></textarea>
+                                </div>
+                                <button class="btn last" id="applyBinaryBtn">
+                                    <i data-feather="check" class="btn-icon"></i>
+                                    Apply Pixel Data
                                 </button>
                             </div>
 
@@ -969,28 +989,6 @@
                 </div>
             </div>
 
-            <!-- Binary Import Section -->
-            <div class="import-controls" id="binaryImportControls" style="display: none;">
-                <!-- File Upload Drop Zone -->
-                <div class="file-drop-zone" id="jsonDropZone">
-                    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-                    <i data-feather="upload-cloud" class="drop-icon"></i>
-                    <p class="drop-text">Drop JSON file here or click to browse</p>
-                    <p class="drop-subtext">Supports .json files with Glyph Matrix format</p>
-                </div>
-
-                <div class="separator">
-                    <span>OR</span>
-                </div>
-
-                <div class="input-group nomargin">
-                    <textarea id="binaryInput" placeholder="Paste raw pixel data or JSON here..." rows="4"></textarea>
-                </div>
-                <button class="btn last" id="applyBinaryBtn">
-                    <i data-feather="check" class="btn-icon"></i>
-                    Apply Pixel Data
-                </button>
-            </div>
 
             <!-- Image Import Controls -->
             <div class="import-controls" id="importControls" style="display: none;">

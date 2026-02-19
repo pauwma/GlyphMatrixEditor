@@ -971,6 +971,10 @@ a:hover {
     min-height: 40px;
 }
 
+.onion-label-short {
+    display: none;
+}
+
 .arrow-btn {
     width: 36px;
     height: 36px;
@@ -1639,11 +1643,55 @@ a:hover {
     .duration-control-row {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
+    }
+
+    .duration-slider-group {
+        min-width: 0;
+        width: 100%;
+        padding-right: 0;
+        margin-right: 0;
+        border-right: none;
     }
 
     .onion-utils-group {
+        min-width: 0;
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .onion-controls-row {
+        flex: 0 0 auto;
+    }
+
+    .onion-skin-btn {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .onion-label-full {
+        display: none;
+    }
+
+    .onion-label-short {
+        display: inline;
+    }
+
+    .onion-opacity-group {
+        flex: 1;
+    }
+
+    /* Hide the flex spacer between duplicate and delete buttons */
+    .animation-controls > div {
+        display: none;
+    }
+
+    .animation-controls {
         justify-content: space-between;
-        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .animation-section.expanded {
