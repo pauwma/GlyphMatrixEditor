@@ -468,6 +468,8 @@ const downloadImageBtn = document.getElementById('downloadImageBtn');
 
 // Animation export elements
 const animationFormat = document.getElementById('animationFormat');
+const gifStyle = document.getElementById('gifStyle');
+const gifStyleGroup = document.getElementById('gifStyleGroup');
 const downloadAnimationBtn = document.getElementById('downloadAnimationBtn');
 const animationPreviewCanvas = document.getElementById('animationPreviewCanvas');
 const animationPreviewInfo = document.getElementById('animationPreviewInfo');
@@ -4432,6 +4434,154 @@ async function exportAsGif() {
     }
 }
 
+async function exportAsRoundedGif() {
+    if (frames.length <= 1) {
+        showFeedback('Need at least 2 frames to create GIF', 'error');
+        return;
+    }
+
+    try {
+        showFeedback('Loading GIF library...', 'success');
+
+        // Fetch worker script to avoid CORS issues
+        let workerUrl;
+        try {
+            const workerResponse = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+            const workerBlob = await workerResponse.blob();
+            workerUrl = URL.createObjectURL(workerBlob);
+        } catch (workerError) {
+            console.warn('Could not load worker script, falling back to single-threaded mode');
+            workerUrl = null;
+        }
+
+        showFeedback('Generating rounded GIF...', 'success');
+
+        const pixelSize = 36;
+        const gapSize = 8;
+        const scaleFactor = pixelSize + gapSize;
+
+        // Grid content dimensions
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+
+        // Padding inside the circle around the grid
+        const padding = Math.round(gridContentSize * 0.12);
+        const totalSize = gridContentSize + padding * 2;
+
+        // Canvas is square, circle fills it
+        const canvasSize = totalSize;
+        const radius = canvasSize / 2;
+
+        // Initialize gif.js - white background outside circle
+        const gifOptions = {
+            quality: 10,
+            width: canvasSize,
+            height: canvasSize
+        };
+
+        if (workerUrl) {
+            gifOptions.workers = 2;
+            gifOptions.workerScript = workerUrl;
+        } else {
+            gifOptions.workers = 1;
+        }
+
+        const gif = new GIF(gifOptions);
+
+        // Generate frames and add to GIF
+        for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+            const frame = frames[frameIndex];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+
+            // Fill entire canvas white, then draw black circle on top
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+            // Draw black circular background
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Clip to circle so nothing draws outside
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Draw pixels offset by padding
+            for (let row = 0; row < gridSize; row++) {
+                const rowWidth = shapePattern[row] || 0;
+                const startCol = Math.floor((gridSize - rowWidth) / 2);
+                const endCol = startCol + rowWidth - 1;
+
+                for (let col = startCol; col <= endCol; col++) {
+                    const pixelId = `${row}-${col}`;
+                    const opacity = frame.pixels.get(pixelId) || 0;
+
+                    const x = padding + col * scaleFactor;
+                    const y = padding + row * scaleFactor;
+
+                    // Draw dark background for inactive pixels
+                    if (opacity <= 0) {
+                        ctx.fillStyle = '#1a1a1a';
+                    } else {
+                        const grayValue = Math.round(opacity);
+                        ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                    }
+
+                    // Draw rounded rectangle pixel
+                    const cornerRadius = pixelSize * 0.15;
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                    } else {
+                        ctx.rect(x, y, pixelSize, pixelSize);
+                    }
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+
+            // Add frame to GIF with its duration
+            gif.addFrame(canvas, { delay: frame.duration, copy: true });
+        }
+
+        // Render and download GIF
+        gif.on('finished', function (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'glyph-matrix-rounded.gif';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (workerUrl) {
+                URL.revokeObjectURL(workerUrl);
+            }
+
+            showFeedback('Rounded GIF exported successfully!', 'success');
+        });
+
+        gif.on('progress', function (p) {
+            const percent = Math.round(p * 100);
+            showFeedback(`Generating rounded GIF... ${percent}%`, 'success');
+        });
+
+        gif.render();
+
+    } catch (error) {
+        showFeedback('Failed to export rounded GIF', 'error');
+        console.error('Rounded GIF export error:', error);
+    }
+}
+
 async function exportVideo(format = 'webm') {
     if (frames.length <= 1) {
         showFeedback(`Need at least 2 frames to create ${format.toUpperCase()}`, 'error');
@@ -6220,12 +6370,22 @@ function initializeExportModal() {
     // Quality slider sync
     setupSliderPair(imageQuality, imageQualityValue, updateExportPreview, 90);
 
+    // Show/hide GIF style option based on format
+    animationFormat.addEventListener('change', () => {
+        gifStyleGroup.style.display = animationFormat.value === 'gif' ? '' : 'none';
+    });
+
     // Download buttons
     downloadImageBtn.addEventListener('click', downloadImage);
     downloadAnimationBtn.addEventListener('click', () => {
         const format = animationFormat.value;
         if (format === 'gif') {
-            exportAsGif();
+            const style = gifStyle.value;
+            if (style === 'rounded') {
+                exportAsRoundedGif();
+            } else {
+                exportAsGif();
+            }
         } else {
             // webm or mp4
             exportVideo(format);
