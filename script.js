@@ -20,9 +20,24 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
     return false;
 };
 
+// Phone profile definitions
+const PHONE_PROFILES = {
+    phone3: {
+        name: 'Phone 3',
+        gridSize: 25,
+        shapePattern: [7, 11, 15, 17, 19, 21, 21, 23, 23, 25, 25, 25, 25, 25, 25, 25, 23, 23, 21, 21, 19, 17, 15, 11, 7]
+    },
+    phone4a: {
+        name: 'Phone 4a',
+        gridSize: 13,
+        shapePattern: [5, 9, 11, 11, 13, 13, 13, 13, 13, 11, 11, 9, 5]
+    }
+};
+let currentProfileId = 'phone3';
+
 // Global variables
-const shapePattern = [7, 11, 15, 17, 19, 21, 21, 23, 23, 25, 25, 25, 25, 25, 25, 25, 23, 23, 21, 21, 19, 17, 15, 11, 7];
-const gridSize = 25;
+let shapePattern = PHONE_PROFILES.phone3.shapePattern;
+let gridSize = PHONE_PROFILES.phone3.gridSize;
 let pixels = [];
 let pixelOpacities = new Map();
 let clipboardData = null; // For Copy/Paste functionality
@@ -215,18 +230,33 @@ const ProjectManager = {
         const project = projects.find(p => p.id === currentProjectId);
         if (!project) return;
 
-        // Serialize current frames to simple objects
+        // Serialize current frames to simple objects (exclude history to save storage space)
         project.frames = frames.map(f => ({
             pixels: Array.from(f.pixels.entries()),
-            duration: f.duration,
-            history: f.history.map(h => Array.from(h.entries())),
-            historyIndex: f.historyIndex
+            duration: f.duration
         }));
+        project.profileId = currentProfileId;
         project.lastModified = Date.now();
         this.saveProjects();
     },
 
     loadProjectData: function (project) {
+        // Switch profile silently (no confirmation, no re-init yet)
+        const profileId = project.profileId || 'phone3';
+        if (profileId !== currentProfileId) {
+            currentProfileId = profileId;
+            const profile = PHONE_PROFILES[profileId];
+            shapePattern = profile.shapePattern;
+            gridSize = profile.gridSize;
+            if (imageCanvas) {
+                imageCanvas.width = gridSize;
+                imageCanvas.height = gridSize;
+            }
+            initializeGrid();
+            updateDeviceToggleUI();
+            updateGridContainerClass();
+        }
+
         // Deserialize frames
         if (project.frames && project.frames.length > 0) {
             frames = project.frames.map(f => ({
@@ -296,7 +326,15 @@ const ProjectManager = {
     },
 
     saveProjects: function () {
-        localStorage.setItem('glyph_projects', JSON.stringify(projects));
+        try {
+            localStorage.setItem('glyph_projects', JSON.stringify(projects));
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                showFeedback('Storage full! Export your project to avoid data loss.', 'error');
+            } else {
+                console.error('Failed to save projects:', e);
+            }
+        }
     },
 
     renderSidebar: function () {
@@ -937,6 +975,7 @@ function duplicateFrame(index, direction = 'right') {
     selectedFrameIndices.add(currentFrameIndex);
 
     updateFramesDisplay();
+    updateDisplay();
     updateDurationDisplay();
     updateHistoryButtons();
     autoSave();
@@ -1099,6 +1138,8 @@ function updateFramesDisplay() {
         // Create mini grid
         const miniGrid = document.createElement('div');
         miniGrid.className = 'frame-mini-grid';
+        miniGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+        miniGrid.style.gridTemplateRows    = `repeat(${gridSize}, 1fr)`;
 
         for (let row = 0; row < gridSize; row++) {
             for (let col = 0; col < gridSize; col++) {
@@ -1575,8 +1616,10 @@ function togglePlayback() {
         // Restore the actual current frame state (don't use loadFrame as it might save wrong state)
         const currentFrame = frames[currentFrameIndex];
         pixelOpacities = new Map(currentFrame.pixels);
+        frameDuration = currentFrame.duration;
         updateDisplay();
         updateFramesDisplay();
+        updateDurationDisplay();
 
         //showFeedback('Animation stopped', 'success');
     } else {
@@ -1978,8 +2021,15 @@ function applyPixelDataToMap(values, targetMap) {
 // Helper function to import frames from JSON format
 function importJsonFrames(jsonData) {
     // Validate JSON structure
-    if (!jsonData.v || jsonData.v !== 1) {
+    const SUPPORTED_VERSIONS = { 1: 'phone3', 4: 'phone4a' };
+    if (!jsonData.v || !SUPPORTED_VERSIONS[jsonData.v]) {
         throw new Error('Invalid or unsupported JSON version');
+    }
+
+    // Auto-switch to the correct device profile if needed
+    const targetProfile = SUPPORTED_VERSIONS[jsonData.v];
+    if (targetProfile !== currentProfileId) {
+        switchProfile(targetProfile, true);
     }
 
     if (!jsonData.frames || !Array.isArray(jsonData.frames) || jsonData.frames.length === 0) {
@@ -2182,6 +2232,53 @@ function initializeGrid() {
     }, { passive: false });
 
     updateDisplay();
+}
+
+// Device profile switching
+function switchProfile(profileId, silent) {
+    if (profileId === currentProfileId) return;
+
+    if (!silent) {
+        const hasData = frames.some(f => f.pixels && f.pixels.size > 0);
+        if (hasData && !confirm('Switching device will clear all frames. Continue?')) return;
+    }
+
+    currentProfileId = profileId;
+    const profile = PHONE_PROFILES[profileId];
+    shapePattern = profile.shapePattern;
+    gridSize = profile.gridSize;
+
+    pixelOpacities = new Map();
+    frames = [];
+    currentFrameIndex = 0;
+
+    // Resize the offscreen image canvas to the new grid size
+    if (imageCanvas) {
+        imageCanvas.width = gridSize;
+        imageCanvas.height = gridSize;
+    }
+
+    initializeAnimation();
+    initializeGrid();
+    updateDeviceToggleUI();
+    updateGridContainerClass();
+}
+
+function toggleDeviceProfile() {
+    const next = currentProfileId === 'phone3' ? 'phone4a' : 'phone3';
+    switchProfile(next);
+}
+
+function updateDeviceToggleUI() {
+    const label = document.getElementById('deviceToggleLabel');
+    if (label) label.textContent = PHONE_PROFILES[currentProfileId].name;
+}
+
+function updateGridContainerClass() {
+    const container = document.querySelector('.grid-container');
+    const grid = document.getElementById('pixelGrid');
+    if (container) container.classList.toggle('phone4a', currentProfileId === 'phone4a');
+    if (grid) grid.classList.toggle('phone4a', currentProfileId === 'phone4a');
 }
 
 // Mouse and touch event handlers
@@ -3044,8 +3141,9 @@ function rotate90() {
     for (const [pixelId, opacity] of pixelOpacities) {
         const [row, col] = pixelId.split('-').map(Number);
 
-        const centerX = 12;
-        const centerY = 12;
+        const center = Math.floor((gridSize - 1) / 2); // Phone 3: 12, Phone 4a: 6
+        const centerX = center;
+        const centerY = center;
         const x = col - centerX;
         const y = row - centerY;
 
@@ -3350,13 +3448,13 @@ function generateTextPixelArt() {
     const fontType = document.getElementById('fontType').value;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 25;
-    canvas.height = 25;
+    canvas.width = gridSize;
+    canvas.height = gridSize;
     const ctx = canvas.getContext('2d');
 
     // Clear canvas to black
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, 25, 25);
+    ctx.fillRect(0, 0, gridSize, gridSize);
 
     // Set font
     ctx.font = `${fontSize}px '${fontType}', sans-serif`;
@@ -3369,10 +3467,10 @@ function generateTextPixelArt() {
     const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
 
     // Center position
-    const centerY = (25 - textHeight) / 2 + metrics.actualBoundingBoxAscent;
+    const centerY = (gridSize - textHeight) / 2 + metrics.actualBoundingBoxAscent;
 
     // Draw text
-    ctx.fillText(text, 12.5, centerY);
+    ctx.fillText(text, gridSize / 2, centerY);
 
     // Process the canvas as an image (will be inverted)
     processCanvasAsImage(canvas);
@@ -3387,13 +3485,13 @@ function generateEmojiPixelArt() {
     const fontSize = parseInt(emojiSizeSlider.value);
 
     const canvas = document.createElement('canvas');
-    canvas.width = 25;
-    canvas.height = 25;
+    canvas.width = gridSize;
+    canvas.height = gridSize;
     const ctx = canvas.getContext('2d');
 
     // Clear canvas to black
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, 25, 25);
+    ctx.fillRect(0, 0, gridSize, gridSize);
 
     // Set font for emoji
     if (emojiMode === true) {
@@ -3411,10 +3509,10 @@ function generateEmojiPixelArt() {
     const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
 
     // Center position
-    const centerY = (25 - textHeight) / 2 + metrics.actualBoundingBoxAscent;
+    const centerY = (gridSize - textHeight) / 2 + metrics.actualBoundingBoxAscent;
 
     // Draw text
-    ctx.fillText(selectedEmoji, 12.5, centerY);
+    ctx.fillText(selectedEmoji, gridSize / 2, centerY);
 
     // Process the canvas as an image (will be inverted)
     processCanvasAsImage(canvas);
@@ -3445,8 +3543,8 @@ function processCanvasAsImage(canvas) {
 function createImageCanvas() {
     imageCanvas = document.createElement('canvas');
     imageCanvas.className = 'preview-canvas';
-    imageCanvas.width = 25;
-    imageCanvas.height = 25;
+    imageCanvas.width = gridSize;
+    imageCanvas.height = gridSize;
     imageContext = imageCanvas.getContext('2d');
     document.body.appendChild(imageCanvas);
 }
@@ -3492,18 +3590,18 @@ function handleImageUpload(event) {
 function processImage() {
     if (!uploadedImage || !imageCanvas) return;
 
-    imageContext.clearRect(0, 0, 25, 25);
-    imageContext.drawImage(uploadedImage, 0, 0, 25, 25);
+    imageContext.clearRect(0, 0, gridSize, gridSize);
+    imageContext.drawImage(uploadedImage, 0, 0, gridSize, gridSize);
     applyImageFilters();
 }
 
 function applyImageFilters() {
     if (!uploadedImage) return;
 
-    imageContext.clearRect(0, 0, 25, 25);
-    imageContext.drawImage(uploadedImage, 0, 0, 25, 25);
+    imageContext.clearRect(0, 0, gridSize, gridSize);
+    imageContext.drawImage(uploadedImage, 0, 0, gridSize, gridSize);
 
-    const imageData = imageContext.getImageData(0, 0, 25, 25);
+    const imageData = imageContext.getImageData(0, 0, gridSize, gridSize);
     const data = imageData.data;
 
     const brightness = parseInt(brightnessSlider.value);
@@ -3560,7 +3658,7 @@ function applyImageToPixels() {
     if (!uploadedImage) return;
     pauseAnimationIfPlaying();
 
-    const imageData = imageContext.getImageData(0, 0, 25, 25);
+    const imageData = imageContext.getImageData(0, 0, gridSize, gridSize);
     const data = imageData.data;
 
     pixelOpacities.clear();
@@ -3572,7 +3670,7 @@ function applyImageToPixels() {
             const endCol = startCol + rowWidth - 1;
 
             if (col >= startCol && col <= endCol) {
-                const pixelIndex = (row * 25 + col) * 4;
+                const pixelIndex = (row * gridSize + col) * 4;
                 const r = data[pixelIndex];
                 const g = data[pixelIndex + 1];
                 const b = data[pixelIndex + 2];
@@ -3681,8 +3779,8 @@ async function processVideoToFrames() {
     const processedFrames = [];
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 25;
-    canvas.height = 25;
+    canvas.width = gridSize;
+    canvas.height = gridSize;
 
     const video = currentVideoData.element;
 
@@ -3704,14 +3802,14 @@ async function processVideoToFrames() {
                 }
             });
 
-            ctx.clearRect(0, 0, 25, 25);
-            ctx.drawImage(video, 0, 0, 25, 25);
+            ctx.clearRect(0, 0, gridSize, gridSize);
+            ctx.drawImage(video, 0, 0, gridSize, gridSize);
 
-            const imageData = ctx.getImageData(0, 0, 25, 25);
+            const imageData = ctx.getImageData(0, 0, gridSize, gridSize);
             applyImageAdjustments(imageData, brightness, contrast, invertColors);
             ctx.putImageData(imageData, 0, 0);
 
-            const finalImageData = ctx.getImageData(0, 0, 25, 25);
+            const finalImageData = ctx.getImageData(0, 0, gridSize, gridSize);
             const framePixels = convertImageDataToPixels(finalImageData.data, threshold);
 
             processedFrames.push({
@@ -3890,8 +3988,8 @@ async function processGifToFrames() {
         const processedFrames = [];
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 25;
-        canvas.height = 25;
+        canvas.width = gridSize;
+        canvas.height = gridSize;
 
         const { rub, frameCount, frameDelays } = currentGifData;
 
@@ -3911,17 +4009,17 @@ async function processGifToFrames() {
             // Get frame delay from stored delays or use default
             const frameDelay = (frameDelays && frameDelays[i]) ? frameDelays[i] : 10; // Default 10 centiseconds = 100ms
 
-            // Scale and process to 25x25
-            ctx.clearRect(0, 0, 25, 25);
-            ctx.drawImage(frameCanvas, 0, 0, 25, 25);
+            // Scale and process to gridSize x gridSize
+            ctx.clearRect(0, 0, gridSize, gridSize);
+            ctx.drawImage(frameCanvas, 0, 0, gridSize, gridSize);
 
             // Apply image processing
-            const processedImageData = ctx.getImageData(0, 0, 25, 25);
+            const processedImageData = ctx.getImageData(0, 0, gridSize, gridSize);
             applyImageAdjustments(processedImageData, brightness, contrast, invertColors);
             ctx.putImageData(processedImageData, 0, 0);
 
             // Convert to pixel data
-            const finalImageData = ctx.getImageData(0, 0, 25, 25);
+            const finalImageData = ctx.getImageData(0, 0, gridSize, gridSize);
             const framePixels = convertImageDataToPixels(finalImageData.data, threshold);
 
             processedFrames.push({
@@ -3976,7 +4074,7 @@ function convertImageDataToPixels(data, threshold) {
             const endCol = startCol + rowWidth - 1;
 
             if (col >= startCol && col <= endCol) {
-                const pixelIndex = (row * 25 + col) * 4;
+                const pixelIndex = (row * gridSize + col) * 4;
                 const r = data[pixelIndex];
                 const g = data[pixelIndex + 1];
                 const b = data[pixelIndex + 2];
@@ -5662,7 +5760,7 @@ function updateDataOutput() {
         output = generateBinaryOutput();
     } else if (format === 'json') {
         const frameData = {
-            v: 1,
+            v: currentProfileId === 'phone4a' ? 4 : 1,
             frames: frames.map((frame) => {
                 const pixelArray = generatePixelArray(frame.pixels || new Map());
 
@@ -6486,17 +6584,17 @@ function applyAdvancedToGrid() {
     // Pause animation if playing
     pauseAnimationIfPlaying();
 
-    // Scale down the processed image to 25x25 for the grid
+    // Scale down the processed image to gridSize x gridSize for the grid
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-    tempCanvas.width = 25;
-    tempCanvas.height = 25;
+    tempCanvas.width = gridSize;
+    tempCanvas.height = gridSize;
 
     // Draw scaled down version
-    tempCtx.drawImage(advancedCanvas, 0, 0, 25, 25);
+    tempCtx.drawImage(advancedCanvas, 0, 0, gridSize, gridSize);
 
     // Get image data
-    const imageData = tempCtx.getImageData(0, 0, 25, 25);
+    const imageData = tempCtx.getImageData(0, 0, gridSize, gridSize);
     const data = imageData.data;
 
     // Clear current pixel data
@@ -6510,7 +6608,7 @@ function applyAdvancedToGrid() {
             const endCol = startCol + rowWidth - 1;
 
             if (col >= startCol && col <= endCol) {
-                const pixelIndex = (row * 25 + col) * 4;
+                const pixelIndex = (row * gridSize + col) * 4;
                 const grayValue = data[pixelIndex]; // R channel (since all RGB are same after grayscale conversion)
 
                 if (grayValue > 0) {

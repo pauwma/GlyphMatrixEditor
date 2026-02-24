@@ -280,9 +280,9 @@
 
             <!-- Navigation Tabs moved to right -->
             <div class="header-nav">
-                <button class="nav-tab active" id="editorTab">
-                    <i data-feather="edit-2" class="tab-icon"></i>
-                    Editor
+                <button class="nav-tab active" id="deviceToggleBtn" onclick="toggleDeviceProfile()">
+                    <i data-feather="smartphone" class="tab-icon"></i>
+                    <span id="deviceToggleLabel">Phone 3</span>
                 </button>
                 <a class="nav-tab" id="galleryTab" href="https://play.google.com/store/apps/details?id=com.pauwma.glyphmuseum" target="_blank" rel="noopener noreferrer">
                     <i data-feather="grid" class="tab-icon"></i>
@@ -327,8 +327,7 @@
                         <h3>Animation</h3>
                     </div>
                     <div class="control-content">
-                        <div class="animation-controls" style="display: flex; align-items: center; width: 100%;">
-                            <!-- Left Controls: Play, Playback, New, Duplicate -->
+                        <div class="animation-controls">
                             <button class="btn btn-icon-only" id="playBtn" title="Play/Pause (Space)">
                                 <i data-feather="play" class="btn-icon"></i>
                             </button>
@@ -341,10 +340,6 @@
                             <button class="btn btn-icon-only" id="duplicateFrameBtn" title="Duplicate Frame">
                                 <i data-feather="copy" class="btn-icon"></i>
                             </button>
-
-                            <div style="flex-grow: 1;"></div> <!-- Spacer -->
-
-                            <!-- Right Controls: Delete -->
                             <button class="btn btn-icon-only danger" id="deleteFrameBtn" title="Delete Frame">
                                 <i data-feather="trash-2" class="btn-icon"></i>
                             </button>
@@ -536,6 +531,26 @@
                                 <button class="btn action-btn" id="pasteBtn">
                                     <i data-feather="clipboard" class="btn-icon"></i>
                                     Paste Image
+                                </button>
+                            </div>
+
+                            <!-- Image Import Controls -->
+                            <div class="import-controls" id="importControls" style="display: none;">
+                                <div class="slider-group">
+                                    <label class="slider-label">Brightness</label>
+                                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="slider"
+                                        title="Double-click to reset">
+                                    <input type="number" id="brightnessValue" min="-100" max="100" value="0" class="slider-input">
+                                </div>
+                                <div class="slider-group">
+                                    <label class="slider-label">Contrast</label>
+                                    <input type="range" id="contrastSlider" min="0" max="200" value="100" class="slider"
+                                        title="Double-click to reset">
+                                    <input type="number" id="contrastValue" min="0" max="200" value="100" class="slider-input">
+                                </div>
+                                <button class="btn last" id="applyBtn">
+                                    <i data-feather="check" class="btn-icon"></i>
+                                    Apply Settings
                                 </button>
                             </div>
 
@@ -990,25 +1005,6 @@
             </div>
 
 
-            <!-- Image Import Controls -->
-            <div class="import-controls" id="importControls" style="display: none;">
-                <div class="slider-group">
-                    <label class="slider-label">Brightness</label>
-                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="slider"
-                        title="Double-click to reset">
-                    <input type="number" id="brightnessValue" min="-100" max="100" value="0" class="slider-input">
-                </div>
-                <div class="slider-group">
-                    <label class="slider-label">Contrast</label>
-                    <input type="range" id="contrastSlider" min="0" max="200" value="100" class="slider"
-                        title="Double-click to reset">
-                    <input type="number" id="contrastValue" min="0" max="200" value="100" class="slider-input">
-                </div>
-                <button class="btn last" id="applyBtn">
-                    <i data-feather="check" class="btn-icon"></i>
-                    Apply Settings
-                </button>
-            </div>
     </div>
     </div>
 

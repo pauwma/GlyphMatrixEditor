@@ -609,6 +609,16 @@ a:hover {
     font-family: 'Courier New', monospace;
 }
 
+.grid-container.phone4a::after {
+    content: '(12,12)';
+}
+
+/* Phone 4a larger pixels (scaled to match Phone 3 visual size) */
+.grid.phone4a .pixel {
+    width: 46px;
+    height: 46px;
+}
+
 /* ---------- END - GRID ---------- */
 
 /* ---------- INI - CONTROLS ---------- */
@@ -1278,6 +1288,11 @@ a:hover {
         height: 18px;
     }
 
+    .grid.phone4a .pixel {
+        width: 34px;
+        height: 34px;
+    }
+
     .controls {
         width: 100%;
         max-width: 500px;
@@ -1322,6 +1337,11 @@ a:hover {
         height: 15px;
     }
 
+    .grid.phone4a .pixel {
+        width: 28px;
+        height: 28px;
+    }
+
     .header h1 {
         font-size: 2rem;
     }
@@ -1352,6 +1372,11 @@ a:hover {
     .pixel {
         width: 12px;
         height: 12px;
+    }
+
+    .grid.phone4a .pixel {
+        width: 22px;
+        height: 22px;
     }
 
     .header {
@@ -1682,11 +1707,6 @@ a:hover {
 
     .onion-opacity-group {
         flex: 1;
-    }
-
-    /* Hide the flex spacer between duplicate and delete buttons */
-    .animation-controls > div {
-        display: none;
     }
 
     .animation-controls {
@@ -2545,7 +2565,7 @@ a:hover {
     gap: 8px;
     margin-bottom: 12px;
     width: 100%;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(5, 1fr);
 }
 
 .animation-controls .btn {
@@ -2639,7 +2659,6 @@ a:hover {
 
 .frame-mini-grid {
     display: grid;
-    grid-template-columns: repeat(25, 1fr);
     gap: 0px;
     width: 60px;
     height: 60px;
@@ -2647,8 +2666,8 @@ a:hover {
 }
 
 .frame-mini-pixel {
-    width: 2px;
-    height: 2px;
+    width: 100%;
+    height: 100%;
     background: black;
     border-radius: 20%;
     pointer-events: none;
