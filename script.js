@@ -52,6 +52,7 @@ let imageContext = null;
 let currentGifData = null;
 let gifFrames = [];
 let brushOpacity = 255;
+let glyphToyMode = false;
 let eyedropperMode = false;
 let hoverPreviewElement = null;
 
@@ -468,8 +469,9 @@ const downloadImageBtn = document.getElementById('downloadImageBtn');
 
 // Animation export elements
 const animationFormat = document.getElementById('animationFormat');
-const gifStyle = document.getElementById('gifStyle');
+const gifStyleToggleBtn = document.getElementById('gifStyleToggleBtn');
 const gifStyleGroup = document.getElementById('gifStyleGroup');
+let gifRoundedMode = false;
 const downloadAnimationBtn = document.getElementById('downloadAnimationBtn');
 const animationPreviewCanvas = document.getElementById('animationPreviewCanvas');
 const animationPreviewInfo = document.getElementById('animationPreviewInfo');
@@ -2274,6 +2276,19 @@ function toggleDeviceProfile() {
 function updateDeviceToggleUI() {
     const label = document.getElementById('deviceToggleLabel');
     if (label) label.textContent = PHONE_PROFILES[currentProfileId].name;
+    updateGlyphToyLabel();
+}
+
+function updateGlyphToyLabel() {
+    const label = document.getElementById('glyphToyLabel');
+    if (label) label.textContent = currentProfileId === 'phone3' ? 'Export as Glyph Toy Icon' : 'Export as Glyph Tool Icon';
+}
+
+function toggleGlyphToyMode() {
+    glyphToyMode = !glyphToyMode;
+    const btn = document.getElementById('glyphToyToggleBtn');
+    if (btn) btn.classList.toggle('active', glyphToyMode);
+    updateExportPreview();
 }
 
 function updateGridContainerClass() {
@@ -4471,7 +4486,7 @@ async function exportAsRoundedGif() {
         const canvasSize = totalSize;
         const radius = canvasSize / 2;
 
-        // Initialize gif.js - white background outside circle
+        // Initialize gif.js - GIF doesn't support alpha, so white outside circle
         const gifOptions = {
             quality: 10,
             width: canvasSize,
@@ -4626,8 +4641,19 @@ async function exportVideo(format = 'webm') {
         const gapSize = 10;
         const scaleFactor = pixelSize + gapSize;
 
-        const canvasWidth = gridSize * scaleFactor - gapSize;
-        const canvasHeight = gridSize * scaleFactor - gapSize;
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+        let canvasWidth, canvasHeight, videoPadding, circleRadius;
+
+        if (gifRoundedMode) {
+            videoPadding = Math.round(gridContentSize * 0.12);
+            const canvasSize = gridContentSize + videoPadding * 2;
+            circleRadius = canvasSize / 2;
+            canvasWidth = canvasSize;
+            canvasHeight = canvasSize;
+        } else {
+            canvasWidth = gridContentSize;
+            canvasHeight = gridContentSize;
+        }
 
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
@@ -4651,7 +4677,7 @@ async function exportVideo(format = 'webm') {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `glyph-matrix-animation.${format}`;
+            a.download = `glyph-matrix-${gifRoundedMode ? 'rounded' : 'animation'}.${format}`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4688,32 +4714,81 @@ async function exportVideo(format = 'webm') {
 
             const frame = frames[currentFrame];
 
-            // Clear canvas
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            if (gifRoundedMode) {
+                // Rounded circle style
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-            // Draw frame pixels
-            for (let row = 0; row < gridSize; row++) {
-                const rowWidth = shapePattern[row] || 0;
-                const startCol = Math.floor((gridSize - rowWidth) / 2);
-                const endCol = startCol + rowWidth - 1;
+                // Draw black circle
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(circleRadius, circleRadius, circleRadius, 0, Math.PI * 2);
+                ctx.fill();
 
-                for (let col = startCol; col <= endCol; col++) {
-                    const pixelId = `${row}-${col}`;
-                    const opacity = frame.pixels.get(pixelId) || 0;
+                // Clip to circle
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(circleRadius, circleRadius, circleRadius, 0, Math.PI * 2);
+                ctx.clip();
 
-                    const x = col * scaleFactor;
-                    const y = row * scaleFactor;
+                const cornerRadius = pixelSize * 0.15;
 
-                    // Draw background pixel
-                    ctx.fillStyle = '#111111';
-                    ctx.fillRect(x, y, pixelSize, pixelSize);
+                for (let row = 0; row < gridSize; row++) {
+                    const rowWidth = shapePattern[row] || 0;
+                    const startCol = Math.floor((gridSize - rowWidth) / 2);
+                    const endCol = startCol + rowWidth - 1;
 
-                    // Draw pixel if it has opacity
-                    if (opacity > 0) {
-                        const grayValue = Math.round(opacity);
-                        ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                    for (let col = startCol; col <= endCol; col++) {
+                        const pixelId = `${row}-${col}`;
+                        const opacity = frame.pixels.get(pixelId) || 0;
+
+                        const x = videoPadding + col * scaleFactor;
+                        const y = videoPadding + row * scaleFactor;
+
+                        if (opacity <= 0) {
+                            ctx.fillStyle = '#1a1a1a';
+                        } else {
+                            const grayValue = Math.round(opacity);
+                            ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                        }
+
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                        } else {
+                            ctx.rect(x, y, pixelSize, pixelSize);
+                        }
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            } else {
+                // Plain style
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                for (let row = 0; row < gridSize; row++) {
+                    const rowWidth = shapePattern[row] || 0;
+                    const startCol = Math.floor((gridSize - rowWidth) / 2);
+                    const endCol = startCol + rowWidth - 1;
+
+                    for (let col = startCol; col <= endCol; col++) {
+                        const pixelId = `${row}-${col}`;
+                        const opacity = frame.pixels.get(pixelId) || 0;
+
+                        const x = col * scaleFactor;
+                        const y = row * scaleFactor;
+
+                        ctx.fillStyle = '#111111';
                         ctx.fillRect(x, y, pixelSize, pixelSize);
+
+                        if (opacity > 0) {
+                            const grayValue = Math.round(opacity);
+                            ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                            ctx.fillRect(x, y, pixelSize, pixelSize);
+                        }
                     }
                 }
             }
@@ -5000,6 +5075,10 @@ const shortcutsModal = document.getElementById('shortcutsModal');
 
 if (shortcutsBtn) {
     shortcutsBtn.addEventListener('click', showShortcutsModal);
+}
+const glyphToyToggleBtn = document.getElementById('glyphToyToggleBtn');
+if (glyphToyToggleBtn) {
+    glyphToyToggleBtn.addEventListener('click', toggleGlyphToyMode);
 }
 if (closeShortcutsModal) {
     closeShortcutsModal.addEventListener('click', hideShortcutsModal);
@@ -5567,6 +5646,7 @@ function openExportModal() {
 
     exportModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    updateGlyphToyLabel();
     updateExportPreview();
     updateDataOutput();
 
@@ -5645,9 +5725,73 @@ function updateExportPreview() {
     const style = pixelStyle.value;
     const threshold = parseInt(opacityThreshold.value) || 0;
 
-    // Calculate canvas dimensions
     const pixelSize = 8; // Preview pixel size
     const gapSize = 2;
+
+    if (glyphToyMode) {
+        // Rounded preview
+        const scaleFactor = pixelSize + gapSize;
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+        const padding = Math.round(gridContentSize * 0.12);
+        const canvasSize = gridContentSize + padding * 2;
+        const radius = canvasSize / 2;
+
+        exportPreviewCanvas.width = canvasSize;
+        exportPreviewCanvas.height = canvasSize;
+
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+        ctx.clip();
+
+        const currentFrame = frames[currentFrameIndex];
+        const pixelData = currentFrame ? currentFrame.pixels : pixelOpacities;
+
+        for (let row = 0; row < gridSize; row++) {
+            const rowWidth = shapePattern[row] || 0;
+            const startCol = Math.floor((gridSize - rowWidth) / 2);
+            const endCol = startCol + rowWidth - 1;
+
+            for (let col = startCol; col <= endCol; col++) {
+                const pixelId = `${row}-${col}`;
+                const opacity = pixelData.get(pixelId) || 0;
+                const x = padding + col * scaleFactor;
+                const y = padding + row * scaleFactor;
+
+                if (opacity <= 0) {
+                    ctx.fillStyle = '#1a1a1a';
+                } else {
+                    const grayValue = Math.round(opacity);
+                    ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                }
+
+                const cornerRadius = pixelSize * 0.15;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                } else {
+                    ctx.rect(x, y, pixelSize, pixelSize);
+                }
+                ctx.fill();
+            }
+        }
+
+        ctx.restore();
+
+        const roundedExportSize = Math.round((gridSize * (9 * scale + 2 * scale) - 2 * scale) * 1.24);
+        previewSize.textContent = `Size: ${roundedExportSize}×${roundedExportSize}`;
+        previewFormat.textContent = `Format: ${format.toUpperCase()}`;
+        return;
+    }
+
+    // Standard preview
     const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
 
     exportPreviewCanvas.width = totalSize;
@@ -5672,7 +5816,6 @@ function updateExportPreview() {
     const currentFrame = frames[currentFrameIndex];
     const pixelData = currentFrame ? currentFrame.pixels : pixelOpacities;
 
-    // Draw pixels exactly like main grid
     for (let row = 0; row < gridSize; row++) {
         const rowWidth = shapePattern[row] || 0;
         const startCol = Math.floor((gridSize - rowWidth) / 2);
@@ -5685,9 +5828,7 @@ function updateExportPreview() {
             const pixelId = `${row}-${col}`;
             const pixelValue = pixelData.get(pixelId) || 0;
 
-            // Only draw pixels that meet threshold
             if (pixelValue >= threshold) {
-                // Use same color logic as createExportCanvas: rgb(grayValue, grayValue, grayValue)
                 const grayValue = pixelValue;
                 ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
 
@@ -5703,7 +5844,6 @@ function updateExportPreview() {
                     if (ctx.roundRect) {
                         ctx.roundRect(x, y, pixelSize, pixelSize, radius);
                     } else {
-                        // Fallback for browsers without roundRect
                         ctx.rect(x, y, pixelSize, pixelSize);
                     }
                     ctx.fill();
@@ -5714,7 +5854,7 @@ function updateExportPreview() {
 
     // Update preview info
     const actualScale = scale;
-    const actualWidth = totalSize * actualScale / 4; // Since preview is at 1/4 scale
+    const actualWidth = totalSize * actualScale / 4;
     const actualHeight = actualWidth;
 
     previewSize.textContent = `Size: ${actualWidth}×${actualHeight}`;
@@ -5738,19 +5878,29 @@ function startAnimationPreview() {
     animationPreviewPlaying = true;
     updatePreviewPlayPauseButton();
 
-    const ctx = animationPreviewCanvas.getContext('2d');
-    const pixelSize = 8; // Same as image preview
-    const gapSize = 2;
-    const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
-
-    animationPreviewCanvas.width = totalSize;
-    animationPreviewCanvas.height = totalSize;
-    animationPreviewCanvas.style.width = '200px';
-    animationPreviewCanvas.style.height = '200px';
-
+    setupAnimationPreviewCanvas();
 
     // Render first frame and start animation loop
     renderAnimationFrame();
+}
+
+function setupAnimationPreviewCanvas() {
+    const pixelSize = 8;
+    const gapSize = 2;
+    if (gifRoundedMode) {
+        const scaleFactor = pixelSize + gapSize;
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+        const padding = Math.round(gridContentSize * 0.12);
+        const canvasSize = gridContentSize + padding * 2;
+        animationPreviewCanvas.width = canvasSize;
+        animationPreviewCanvas.height = canvasSize;
+    } else {
+        const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
+        animationPreviewCanvas.width = totalSize;
+        animationPreviewCanvas.height = totalSize;
+    }
+    animationPreviewCanvas.style.width = '200px';
+    animationPreviewCanvas.style.height = '200px';
 }
 
 function stopAnimationPreview() {
@@ -5794,17 +5944,7 @@ function resumeAnimationPreview() {
     animationPreviewPlaying = true;
     updatePreviewPlayPauseButton();
 
-    // Use the same render logic as startAnimationPreview
-    const ctx = animationPreviewCanvas.getContext('2d');
-    const pixelSize = 8;
-    const gapSize = 2;
-    const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
-
-    // Ensure canvas is properly sized (same as startAnimationPreview)
-    animationPreviewCanvas.width = totalSize;
-    animationPreviewCanvas.height = totalSize;
-    animationPreviewCanvas.style.width = '200px';
-    animationPreviewCanvas.style.height = '200px';
+    setupAnimationPreviewCanvas();
 
     // Render current frame immediately, then continue animation
     renderAnimationFrame();
@@ -5816,9 +5956,36 @@ function renderAnimationFrame() {
     const ctx = animationPreviewCanvas.getContext('2d');
     const pixelSize = 8;
     const gapSize = 2;
-    const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
     const frame = frames[animationPreviewCurrentFrame];
     if (!frame) return;
+
+    if (gifRoundedMode) {
+        renderAnimationFrameRounded(ctx, pixelSize, gapSize, frame);
+    } else {
+        renderAnimationFramePlain(ctx, pixelSize, gapSize, frame);
+    }
+
+    // Update info
+    if (animationPreviewInfo) {
+        animationPreviewInfo.textContent = `Frame ${animationPreviewCurrentFrame + 1}/${frames.length} (${frame.duration}ms)`;
+    }
+
+    // Store current frame's duration before moving to next frame
+    const currentFrameDuration = frame.duration;
+
+    // Move to next frame
+    animationPreviewCurrentFrame = (animationPreviewCurrentFrame + 1) % frames.length;
+
+    // Schedule next frame using the duration of the frame we just displayed
+    if (frames.length > 1 && animationPreviewPlaying) {
+        animationPreviewInterval = setTimeout(() => {
+            renderAnimationFrame();
+        }, currentFrameDuration);
+    }
+}
+
+function renderAnimationFramePlain(ctx, pixelSize, gapSize, frame) {
+    const totalSize = gridSize * (pixelSize + gapSize) - gapSize;
 
     // Clear canvas with dark background like main grid
     ctx.fillStyle = '#111';
@@ -5839,7 +6006,7 @@ function renderAnimationFrame() {
 
             // Draw background pixel (inactive state) like main grid
             ctx.fillStyle = '#000';
-            const radius = pixelSize * 0.2; // 20% border-radius like main grid
+            const radius = pixelSize * 0.2;
             ctx.beginPath();
             if (ctx.roundRect) {
                 ctx.roundRect(x, y, pixelSize, pixelSize, radius);
@@ -5863,24 +6030,66 @@ function renderAnimationFrame() {
             }
         }
     }
+}
 
-    // Update info
-    if (animationPreviewInfo) {
-        animationPreviewInfo.textContent = `Frame ${animationPreviewCurrentFrame + 1}/${frames.length} (${frame.duration}ms)`;
+function renderAnimationFrameRounded(ctx, pixelSize, gapSize, frame) {
+    const scaleFactor = pixelSize + gapSize;
+    const gridContentSize = gridSize * scaleFactor - gapSize;
+    const padding = Math.round(gridContentSize * 0.12);
+    const canvasSize = gridContentSize + padding * 2;
+    const circleRadius = canvasSize / 2;
+    const cornerRadius = pixelSize * 0.15;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+    // Draw white background (GIF doesn't support transparency)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    // Draw black circle
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(circleRadius, circleRadius, circleRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(circleRadius, circleRadius, circleRadius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw pixels with padding
+    for (let row = 0; row < gridSize; row++) {
+        const rowWidth = shapePattern[row] || 0;
+        const startCol = Math.floor((gridSize - rowWidth) / 2);
+        const endCol = startCol + rowWidth - 1;
+
+        for (let col = startCol; col <= endCol; col++) {
+            const pixelId = `${row}-${col}`;
+            const opacity = frame.pixels.get(pixelId) || 0;
+
+            const x = padding + col * scaleFactor;
+            const y = padding + row * scaleFactor;
+
+            if (opacity <= 0) {
+                ctx.fillStyle = '#1a1a1a';
+            } else {
+                const grayValue = Math.round(opacity);
+                ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+            }
+
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+            } else {
+                ctx.rect(x, y, pixelSize, pixelSize);
+            }
+            ctx.fill();
+        }
     }
 
-    // Store current frame's duration before moving to next frame
-    const currentFrameDuration = frame.duration;
-
-    // Move to next frame
-    animationPreviewCurrentFrame = (animationPreviewCurrentFrame + 1) % frames.length;
-
-    // Schedule next frame using the duration of the frame we just displayed
-    if (frames.length > 1 && animationPreviewPlaying) {
-        animationPreviewInterval = setTimeout(() => {
-            renderAnimationFrame();
-        }, currentFrameDuration);
-    }
+    ctx.restore();
 }
 
 function updatePreviewPlayPauseButton() {
@@ -6020,6 +6229,72 @@ function createExportCanvas(scale = 4, backgroundType = 'transparent', customCol
     return canvas;
 }
 
+function createRoundedExportCanvas(scale = 4) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const pixelSize = 9 * scale;
+    const gapSize = 2 * scale;
+    const scaleFactor = pixelSize + gapSize;
+
+    const gridContentSize = gridSize * scaleFactor - gapSize;
+    const padding = Math.round(gridContentSize * 0.12);
+    const canvasSize = gridContentSize + padding * 2;
+    const radius = canvasSize / 2;
+
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+
+    // Transparent background with black circle
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw pixels
+    const currentFrame = frames[currentFrameIndex];
+    const pixelData = currentFrame ? currentFrame.pixels : pixelOpacities;
+
+    for (let row = 0; row < gridSize; row++) {
+        const rowWidth = shapePattern[row] || 0;
+        const startCol = Math.floor((gridSize - rowWidth) / 2);
+        const endCol = startCol + rowWidth - 1;
+
+        for (let col = startCol; col <= endCol; col++) {
+            const pixelId = `${row}-${col}`;
+            const opacity = pixelData.get(pixelId) || 0;
+
+            const x = padding + col * scaleFactor;
+            const y = padding + row * scaleFactor;
+
+            if (opacity <= 0) {
+                ctx.fillStyle = '#1a1a1a';
+            } else {
+                const grayValue = Math.round(opacity);
+                ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+            }
+
+            const cornerRadius = pixelSize * 0.15;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+            } else {
+                ctx.rect(x, y, pixelSize, pixelSize);
+            }
+            ctx.fill();
+        }
+    }
+
+    ctx.restore();
+    return canvas;
+}
+
 function downloadImage() {
     const scale = parseInt(imageScale.value) || 4;
     const format = imageFormat.value;
@@ -6029,10 +6304,12 @@ function downloadImage() {
     const style = pixelStyle.value;
     const threshold = parseInt(opacityThreshold.value) || 0;
 
-    const canvas = createExportCanvas(scale, bg, customColor, style, threshold);
+    const canvas = glyphToyMode
+        ? createRoundedExportCanvas(scale)
+        : createExportCanvas(scale, bg, customColor, style, threshold);
 
     let mimeType = 'image/png';
-    let filename = 'glyph-matrix';
+    let filename = glyphToyMode ? 'glyph-matrix-rounded' : 'glyph-matrix';
 
     if (format === 'jpg') {
         mimeType = 'image/jpeg';
@@ -6043,7 +6320,11 @@ function downloadImage() {
     } else if (format === 'png') {
         filename += '.png';
     } else if (format === 'svg') {
-        downloadSVG();
+        if (glyphToyMode) {
+            downloadRoundedSVG();
+        } else {
+            downloadSVG();
+        }
         return;
     } else if (format === 'ico') {
         downloadICO();
@@ -6140,9 +6421,77 @@ function downloadSVG() {
     showFeedback('SVG image downloaded!', 'success');
 }
 
+function downloadRoundedSVG() {
+    const scale = parseInt(imageScale.value) || 4;
+
+    const pixelSize = 9 * scale;
+    const gapSize = 2 * scale;
+    const scaleFactor = pixelSize + gapSize;
+
+    const gridContentSize = gridSize * scaleFactor - gapSize;
+    const padding = Math.round(gridContentSize * 0.12);
+    const canvasSize = gridContentSize + padding * 2;
+    const radius = canvasSize / 2;
+    const cornerRadius = pixelSize * 0.15;
+
+    let svg = `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // Define circular clip path
+    svg += `<defs><clipPath id="circleClip"><circle cx="${radius}" cy="${radius}" r="${radius}"/></clipPath></defs>`;
+
+    // Black circle background
+    svg += `<circle cx="${radius}" cy="${radius}" r="${radius}" fill="#000"/>`;
+
+    // Clipped pixel group
+    svg += `<g clip-path="url(#circleClip)">`;
+
+    const currentFrame = frames[currentFrameIndex];
+    const pixelData = currentFrame ? currentFrame.pixels : pixelOpacities;
+
+    for (let row = 0; row < gridSize; row++) {
+        const rowWidth = shapePattern[row] || 0;
+        const startCol = Math.floor((gridSize - rowWidth) / 2);
+        const endCol = startCol + rowWidth - 1;
+
+        for (let col = startCol; col <= endCol; col++) {
+            const pixelId = `${row}-${col}`;
+            const opacity = pixelData.get(pixelId) || 0;
+
+            const x = padding + col * scaleFactor;
+            const y = padding + row * scaleFactor;
+
+            let fillColor;
+            if (opacity <= 0) {
+                fillColor = '#1a1a1a';
+            } else {
+                const grayValue = Math.round(opacity);
+                fillColor = `rgb(${grayValue},${grayValue},${grayValue})`;
+            }
+
+            svg += `<rect x="${x}" y="${y}" width="${pixelSize}" height="${pixelSize}" rx="${cornerRadius}" fill="${fillColor}"/>`;
+        }
+    }
+
+    svg += '</g></svg>';
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'glyph-matrix-rounded.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showFeedback('SVG image downloaded!', 'success');
+}
+
 async function downloadICO() {
     // ICO format requires multiple sizes - create a simple single-size ICO
-    const canvas = createExportCanvas(2, imageBg.value, customBgColor.value, pixelStyle.value, parseInt(opacityThreshold.value) || 0);
+    const canvas = glyphToyMode
+        ? createRoundedExportCanvas(2)
+        : createExportCanvas(2, imageBg.value, customBgColor.value, pixelStyle.value, parseInt(opacityThreshold.value) || 0);
 
     canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
@@ -6215,7 +6564,9 @@ function downloadDataFile() {
 
 // Social media sharing functions
 async function shareToTwitter() {
-    const canvas = createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
+    const canvas = glyphToyMode
+        ? createRoundedExportCanvas(4)
+        : createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
 
     canvas.toBlob((blob) => {
         // For Twitter, we'll create a data URL and copy it
@@ -6243,7 +6594,9 @@ async function shareWithNativeAPI() {
         return;
     }
 
-    const canvas = createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
+    const canvas = glyphToyMode
+        ? createRoundedExportCanvas(4)
+        : createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
 
     canvas.toBlob(async (blob) => {
         const file = new File([blob], 'glyph-matrix.png', { type: 'image/png' });
@@ -6264,7 +6617,9 @@ async function shareWithNativeAPI() {
 }
 
 async function copyImageAsLink() {
-    const canvas = createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
+    const canvas = glyphToyMode
+        ? createRoundedExportCanvas(4)
+        : createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
 
     canvas.toBlob(async (blob) => {
         try {
@@ -6370,18 +6725,27 @@ function initializeExportModal() {
     // Quality slider sync
     setupSliderPair(imageQuality, imageQualityValue, updateExportPreview, 90);
 
-    // Show/hide GIF style option based on format
-    animationFormat.addEventListener('change', () => {
-        gifStyleGroup.style.display = animationFormat.value === 'gif' ? '' : 'none';
-    });
+    // Rounded style toggle is available for all animation formats (GIF, WebM, MP4)
+
+    // GIF rounded style toggle
+    if (gifStyleToggleBtn) {
+        gifStyleToggleBtn.addEventListener('click', () => {
+            gifRoundedMode = !gifRoundedMode;
+            gifStyleToggleBtn.classList.toggle('active', gifRoundedMode);
+            // Restart preview to reflect new style
+            if (animationPreviewPlaying) {
+                stopAnimationPreview();
+                startAnimationPreview();
+            }
+        });
+    }
 
     // Download buttons
     downloadImageBtn.addEventListener('click', downloadImage);
     downloadAnimationBtn.addEventListener('click', () => {
         const format = animationFormat.value;
         if (format === 'gif') {
-            const style = gifStyle.value;
-            if (style === 'rounded') {
+            if (gifRoundedMode) {
                 exportAsRoundedGif();
             } else {
                 exportAsGif();
