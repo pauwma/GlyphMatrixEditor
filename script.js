@@ -209,6 +209,11 @@ const ProjectManager = {
     },
 
     switchProject: function (id) {
+        // Stop any running animation before switching
+        if (isPlaying) {
+            togglePlayback();
+        }
+
         // Save current frame and project state before switching
         if (currentProjectId) {
             saveCurrentFrame(); // Save current frame's pixelOpacities to frames array
