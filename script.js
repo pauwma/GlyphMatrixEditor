@@ -2285,14 +2285,20 @@ function updateDeviceToggleUI() {
 }
 
 function updateGlyphToyLabel() {
+    const text = currentProfileId === 'phone3' ? 'Export as Glyph Toy Icon' : 'Export as Glyph Tool Icon';
     const label = document.getElementById('glyphToyLabel');
-    if (label) label.textContent = currentProfileId === 'phone3' ? 'Export as Glyph Toy Icon' : 'Export as Glyph Tool Icon';
+    if (label) label.textContent = text;
+    const gifLabel = document.getElementById('gifStyleLabel');
+    if (gifLabel) gifLabel.textContent = text;
 }
 
 function toggleGlyphToyMode() {
     glyphToyMode = !glyphToyMode;
+    gifRoundedMode = glyphToyMode;
     const btn = document.getElementById('glyphToyToggleBtn');
     if (btn) btn.classList.toggle('active', glyphToyMode);
+    const gifBtn = document.getElementById('gifStyleToggleBtn');
+    if (gifBtn) gifBtn.classList.toggle('active', glyphToyMode);
     updateExportPreview();
 }
 
@@ -4476,19 +4482,28 @@ async function exportAsRoundedGif() {
 
         showFeedback('Generating rounded GIF...', 'success');
 
-        const pixelSize = 36;
-        const gapSize = 8;
-        const scaleFactor = pixelSize + gapSize;
+        let pixelSize, scaleFactor, padding, canvasSize, offColor, roundedCorners;
 
-        // Grid content dimensions
-        const gridContentSize = gridSize * scaleFactor - gapSize;
+        if (currentProfileId === 'phone3') {
+            // Phone 3 template proportions (scale ~2.76 for similar resolution)
+            const gifScale = 36 / 13.05;
+            canvasSize = Math.round(512 * gifScale);
+            padding = Math.round(36 * gifScale);
+            pixelSize = 36; // 13.05 * gifScale ≈ 36
+            scaleFactor = 17.7896 * gifScale;
+            offColor = '#1C1C1C';
+            roundedCorners = false;
+        } else {
+            pixelSize = 36;
+            const gapSize = 8;
+            scaleFactor = pixelSize + gapSize;
+            const gridContentSize = gridSize * scaleFactor - gapSize;
+            padding = Math.round(gridContentSize * 0.12);
+            canvasSize = gridContentSize + padding * 2;
+            offColor = '#1a1a1a';
+            roundedCorners = true;
+        }
 
-        // Padding inside the circle around the grid
-        const padding = Math.round(gridContentSize * 0.12);
-        const totalSize = gridContentSize + padding * 2;
-
-        // Canvas is square, circle fills it
-        const canvasSize = totalSize;
         const radius = canvasSize / 2;
 
         // Initialize gif.js - GIF doesn't support alpha, so white outside circle
@@ -4545,23 +4560,25 @@ async function exportAsRoundedGif() {
                     const x = padding + col * scaleFactor;
                     const y = padding + row * scaleFactor;
 
-                    // Draw dark background for inactive pixels
                     if (opacity <= 0) {
-                        ctx.fillStyle = '#1a1a1a';
+                        ctx.fillStyle = offColor;
                     } else {
                         const grayValue = Math.round(opacity);
                         ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
                     }
 
-                    // Draw rounded rectangle pixel
-                    const cornerRadius = pixelSize * 0.15;
-                    ctx.beginPath();
-                    if (ctx.roundRect) {
-                        ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                    if (roundedCorners) {
+                        const cornerRadius = pixelSize * 0.15;
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                        } else {
+                            ctx.rect(x, y, pixelSize, pixelSize);
+                        }
+                        ctx.fill();
                     } else {
-                        ctx.rect(x, y, pixelSize, pixelSize);
+                        ctx.fillRect(x, y, pixelSize, pixelSize);
                     }
-                    ctx.fill();
                 }
             }
 
@@ -4644,17 +4661,28 @@ async function exportVideo(format = 'webm') {
 
         const pixelSize = 40;
         const gapSize = 10;
-        const scaleFactor = pixelSize + gapSize;
+        let scaleFactor = pixelSize + gapSize;
 
         const gridContentSize = gridSize * scaleFactor - gapSize;
-        let canvasWidth, canvasHeight, videoPadding, circleRadius;
+        let canvasWidth, canvasHeight, videoPadding, circleRadius, videoOffColor, videoRoundedCorners;
 
         if (gifRoundedMode) {
-            videoPadding = Math.round(gridContentSize * 0.12);
-            const canvasSize = gridContentSize + videoPadding * 2;
-            circleRadius = canvasSize / 2;
-            canvasWidth = canvasSize;
-            canvasHeight = canvasSize;
+            if (currentProfileId === 'phone3') {
+                const videoScale = pixelSize / 13.05;
+                canvasWidth = Math.round(512 * videoScale);
+                canvasHeight = canvasWidth;
+                videoPadding = Math.round(36 * videoScale);
+                scaleFactor = 17.7896 * videoScale;
+                videoOffColor = '#1C1C1C';
+                videoRoundedCorners = false;
+            } else {
+                videoPadding = Math.round(gridContentSize * 0.12);
+                canvasWidth = gridContentSize + videoPadding * 2;
+                canvasHeight = canvasWidth;
+                videoOffColor = '#1a1a1a';
+                videoRoundedCorners = true;
+            }
+            circleRadius = canvasWidth / 2;
         } else {
             canvasWidth = gridContentSize;
             canvasHeight = gridContentSize;
@@ -4737,8 +4765,6 @@ async function exportVideo(format = 'webm') {
                 ctx.arc(circleRadius, circleRadius, circleRadius, 0, Math.PI * 2);
                 ctx.clip();
 
-                const cornerRadius = pixelSize * 0.15;
-
                 for (let row = 0; row < gridSize; row++) {
                     const rowWidth = shapePattern[row] || 0;
                     const startCol = Math.floor((gridSize - rowWidth) / 2);
@@ -4752,19 +4778,24 @@ async function exportVideo(format = 'webm') {
                         const y = videoPadding + row * scaleFactor;
 
                         if (opacity <= 0) {
-                            ctx.fillStyle = '#1a1a1a';
+                            ctx.fillStyle = videoOffColor;
                         } else {
                             const grayValue = Math.round(opacity);
                             ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
                         }
 
-                        ctx.beginPath();
-                        if (ctx.roundRect) {
-                            ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                        if (videoRoundedCorners) {
+                            const cornerRadius = pixelSize * 0.15;
+                            ctx.beginPath();
+                            if (ctx.roundRect) {
+                                ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                            } else {
+                                ctx.rect(x, y, pixelSize, pixelSize);
+                            }
+                            ctx.fill();
                         } else {
-                            ctx.rect(x, y, pixelSize, pixelSize);
+                            ctx.fillRect(x, y, pixelSize, pixelSize);
                         }
-                        ctx.fill();
                     }
                 }
 
@@ -5734,17 +5765,35 @@ function updateExportPreview() {
     const gapSize = 2;
 
     if (glyphToyMode) {
-        // Rounded preview
-        const scaleFactor = pixelSize + gapSize;
-        const gridContentSize = gridSize * scaleFactor - gapSize;
-        const padding = Math.round(gridContentSize * 0.12);
-        const canvasSize = gridContentSize + padding * 2;
-        const radius = canvasSize / 2;
+        // Glyph Toy/Tool icon preview
+        let previewCanvasSize, previewPadding, previewPixelSize, previewScaleFactor, offColor, roundedCorners;
 
-        exportPreviewCanvas.width = canvasSize;
-        exportPreviewCanvas.height = canvasSize;
+        if (currentProfileId === 'phone3') {
+            // Phone 3 template proportions at preview scale
+            const previewScale = pixelSize / 13.05;
+            previewCanvasSize = Math.round(512 * previewScale);
+            previewPadding = 36 * previewScale;
+            previewPixelSize = pixelSize; // stays at 8
+            previewScaleFactor = 17.7896 * previewScale;
+            offColor = '#1C1C1C';
+            roundedCorners = false;
+        } else {
+            const sf = pixelSize + gapSize;
+            const gridContentSize = gridSize * sf - gapSize;
+            previewPadding = Math.round(gridContentSize * 0.12);
+            previewCanvasSize = gridContentSize + previewPadding * 2;
+            previewPixelSize = pixelSize;
+            previewScaleFactor = sf;
+            offColor = '#1a1a1a';
+            roundedCorners = true;
+        }
 
-        ctx.clearRect(0, 0, canvasSize, canvasSize);
+        const radius = previewCanvasSize / 2;
+
+        exportPreviewCanvas.width = previewCanvasSize;
+        exportPreviewCanvas.height = previewCanvasSize;
+
+        ctx.clearRect(0, 0, previewCanvasSize, previewCanvasSize);
 
         ctx.fillStyle = '#000000';
         ctx.beginPath();
@@ -5767,30 +5816,39 @@ function updateExportPreview() {
             for (let col = startCol; col <= endCol; col++) {
                 const pixelId = `${row}-${col}`;
                 const opacity = pixelData.get(pixelId) || 0;
-                const x = padding + col * scaleFactor;
-                const y = padding + row * scaleFactor;
+                const x = previewPadding + col * previewScaleFactor;
+                const y = previewPadding + row * previewScaleFactor;
 
                 if (opacity <= 0) {
-                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillStyle = offColor;
                 } else {
                     const grayValue = Math.round(opacity);
                     ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
                 }
 
-                const cornerRadius = pixelSize * 0.15;
-                ctx.beginPath();
-                if (ctx.roundRect) {
-                    ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                if (roundedCorners) {
+                    const cornerRadius = previewPixelSize * 0.15;
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(x, y, previewPixelSize, previewPixelSize, cornerRadius);
+                    } else {
+                        ctx.rect(x, y, previewPixelSize, previewPixelSize);
+                    }
+                    ctx.fill();
                 } else {
-                    ctx.rect(x, y, pixelSize, pixelSize);
+                    ctx.fillRect(x, y, previewPixelSize, previewPixelSize);
                 }
-                ctx.fill();
             }
         }
 
         ctx.restore();
 
-        const roundedExportSize = Math.round((gridSize * (9 * scale + 2 * scale) - 2 * scale) * 1.24);
+        let roundedExportSize;
+        if (currentProfileId === 'phone3') {
+            roundedExportSize = Math.round(512 * scale);
+        } else {
+            roundedExportSize = Math.round((gridSize * (9 * scale + 2 * scale) - 2 * scale) * 1.24);
+        }
         previewSize.textContent = `Size: ${roundedExportSize}×${roundedExportSize}`;
         previewFormat.textContent = `Format: ${format.toUpperCase()}`;
         return;
@@ -5893,10 +5951,16 @@ function setupAnimationPreviewCanvas() {
     const pixelSize = 8;
     const gapSize = 2;
     if (gifRoundedMode) {
-        const scaleFactor = pixelSize + gapSize;
-        const gridContentSize = gridSize * scaleFactor - gapSize;
-        const padding = Math.round(gridContentSize * 0.12);
-        const canvasSize = gridContentSize + padding * 2;
+        let canvasSize;
+        if (currentProfileId === 'phone3') {
+            const previewScale = pixelSize / 13.05;
+            canvasSize = Math.round(512 * previewScale);
+        } else {
+            const scaleFactor = pixelSize + gapSize;
+            const gridContentSize = gridSize * scaleFactor - gapSize;
+            const padding = Math.round(gridContentSize * 0.12);
+            canvasSize = gridContentSize + padding * 2;
+        }
         animationPreviewCanvas.width = canvasSize;
         animationPreviewCanvas.height = canvasSize;
     } else {
@@ -6038,12 +6102,25 @@ function renderAnimationFramePlain(ctx, pixelSize, gapSize, frame) {
 }
 
 function renderAnimationFrameRounded(ctx, pixelSize, gapSize, frame) {
-    const scaleFactor = pixelSize + gapSize;
-    const gridContentSize = gridSize * scaleFactor - gapSize;
-    const padding = Math.round(gridContentSize * 0.12);
-    const canvasSize = gridContentSize + padding * 2;
+    let actualScaleFactor, padding, canvasSize, offColor, roundedCorners;
+
+    if (currentProfileId === 'phone3') {
+        const previewScale = pixelSize / 13.05;
+        canvasSize = Math.round(512 * previewScale);
+        padding = 36 * previewScale;
+        actualScaleFactor = 17.7896 * previewScale;
+        offColor = '#1C1C1C';
+        roundedCorners = false;
+    } else {
+        actualScaleFactor = pixelSize + gapSize;
+        const gridContentSize = gridSize * actualScaleFactor - gapSize;
+        padding = Math.round(gridContentSize * 0.12);
+        canvasSize = gridContentSize + padding * 2;
+        offColor = '#1a1a1a';
+        roundedCorners = true;
+    }
+
     const circleRadius = canvasSize / 2;
-    const cornerRadius = pixelSize * 0.15;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvasSize, canvasSize);
@@ -6074,23 +6151,28 @@ function renderAnimationFrameRounded(ctx, pixelSize, gapSize, frame) {
             const pixelId = `${row}-${col}`;
             const opacity = frame.pixels.get(pixelId) || 0;
 
-            const x = padding + col * scaleFactor;
-            const y = padding + row * scaleFactor;
+            const x = padding + col * actualScaleFactor;
+            const y = padding + row * actualScaleFactor;
 
             if (opacity <= 0) {
-                ctx.fillStyle = '#1a1a1a';
+                ctx.fillStyle = offColor;
             } else {
                 const grayValue = Math.round(opacity);
                 ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
             }
 
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+            if (roundedCorners) {
+                const cornerRadius = pixelSize * 0.15;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                } else {
+                    ctx.rect(x, y, pixelSize, pixelSize);
+                }
+                ctx.fill();
             } else {
-                ctx.rect(x, y, pixelSize, pixelSize);
+                ctx.fillRect(x, y, pixelSize, pixelSize);
             }
-            ctx.fill();
         }
     }
 
@@ -6238,13 +6320,27 @@ function createRoundedExportCanvas(scale = 4) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    const pixelSize = 9 * scale;
-    const gapSize = 2 * scale;
-    const scaleFactor = pixelSize + gapSize;
+    let canvasSize, padding, pixelSize, scaleFactor, offColor, roundedCorners;
 
-    const gridContentSize = gridSize * scaleFactor - gapSize;
-    const padding = Math.round(gridContentSize * 0.12);
-    const canvasSize = gridContentSize + padding * 2;
+    if (currentProfileId === 'phone3') {
+        // Official Nothing Phone 3 icon template: 512x512 base
+        canvasSize = Math.round(512 * scale);
+        padding = 36 * scale;
+        pixelSize = 13.05 * scale;
+        scaleFactor = 17.7896 * scale;
+        offColor = '#1C1C1C';
+        roundedCorners = false;
+    } else {
+        pixelSize = 9 * scale;
+        const gapSize = 2 * scale;
+        scaleFactor = pixelSize + gapSize;
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+        padding = Math.round(gridContentSize * 0.12);
+        canvasSize = gridContentSize + padding * 2;
+        offColor = '#1a1a1a';
+        roundedCorners = true;
+    }
+
     const radius = canvasSize / 2;
 
     canvas.width = canvasSize;
@@ -6279,20 +6375,24 @@ function createRoundedExportCanvas(scale = 4) {
             const y = padding + row * scaleFactor;
 
             if (opacity <= 0) {
-                ctx.fillStyle = '#1a1a1a';
+                ctx.fillStyle = offColor;
             } else {
                 const grayValue = Math.round(opacity);
                 ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
             }
 
-            const cornerRadius = pixelSize * 0.15;
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+            if (roundedCorners) {
+                const cornerRadius = pixelSize * 0.15;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                } else {
+                    ctx.rect(x, y, pixelSize, pixelSize);
+                }
+                ctx.fill();
             } else {
-                ctx.rect(x, y, pixelSize, pixelSize);
+                ctx.fillRect(x, y, pixelSize, pixelSize);
             }
-            ctx.fill();
         }
     }
 
@@ -6429,17 +6529,29 @@ function downloadSVG() {
 function downloadRoundedSVG() {
     const scale = parseInt(imageScale.value) || 4;
 
-    const pixelSize = 9 * scale;
-    const gapSize = 2 * scale;
-    const scaleFactor = pixelSize + gapSize;
+    let canvasSize, padding, pixelSize, scaleFactor, offColor, roundedCorners;
 
-    const gridContentSize = gridSize * scaleFactor - gapSize;
-    const padding = Math.round(gridContentSize * 0.12);
-    const canvasSize = gridContentSize + padding * 2;
+    if (currentProfileId === 'phone3') {
+        canvasSize = Math.round(512 * scale);
+        padding = 36 * scale;
+        pixelSize = 13.05 * scale;
+        scaleFactor = 17.7896 * scale;
+        offColor = '#1C1C1C';
+        roundedCorners = false;
+    } else {
+        pixelSize = 9 * scale;
+        const gapSize = 2 * scale;
+        scaleFactor = pixelSize + gapSize;
+        const gridContentSize = gridSize * scaleFactor - gapSize;
+        padding = Math.round(gridContentSize * 0.12);
+        canvasSize = gridContentSize + padding * 2;
+        offColor = '#1a1a1a';
+        roundedCorners = true;
+    }
+
     const radius = canvasSize / 2;
-    const cornerRadius = pixelSize * 0.15;
 
-    let svg = `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg">`;
+    let svg = `<svg width="${canvasSize}" height="${canvasSize}" viewBox="0 0 ${canvasSize} ${canvasSize}" fill="none" xmlns="http://www.w3.org/2000/svg">`;
 
     // Define circular clip path
     svg += `<defs><clipPath id="circleClip"><circle cx="${radius}" cy="${radius}" r="${radius}"/></clipPath></defs>`;
@@ -6467,13 +6579,18 @@ function downloadRoundedSVG() {
 
             let fillColor;
             if (opacity <= 0) {
-                fillColor = '#1a1a1a';
+                fillColor = offColor;
             } else {
                 const grayValue = Math.round(opacity);
                 fillColor = `rgb(${grayValue},${grayValue},${grayValue})`;
             }
 
-            svg += `<rect x="${x}" y="${y}" width="${pixelSize}" height="${pixelSize}" rx="${cornerRadius}" fill="${fillColor}"/>`;
+            if (roundedCorners) {
+                const cornerRadius = pixelSize * 0.15;
+                svg += `<rect x="${x}" y="${y}" width="${pixelSize}" height="${pixelSize}" rx="${cornerRadius}" fill="${fillColor}"/>`;
+            } else {
+                svg += `<rect x="${x}" y="${y}" width="${pixelSize}" height="${pixelSize}" fill="${fillColor}"/>`;
+            }
         }
     }
 
@@ -6736,7 +6853,10 @@ function initializeExportModal() {
     if (gifStyleToggleBtn) {
         gifStyleToggleBtn.addEventListener('click', () => {
             gifRoundedMode = !gifRoundedMode;
+            glyphToyMode = gifRoundedMode;
             gifStyleToggleBtn.classList.toggle('active', gifRoundedMode);
+            const imgBtn = document.getElementById('glyphToyToggleBtn');
+            if (imgBtn) imgBtn.classList.toggle('active', gifRoundedMode);
             // Restart preview to reflect new style
             if (animationPreviewPlaying) {
                 stopAnimationPreview();
