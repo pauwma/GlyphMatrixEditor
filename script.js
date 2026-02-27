@@ -4329,7 +4329,7 @@ function downloadAsImage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'glyph-matrix.png';
+        a.download = getExportFilename('png');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -4337,6 +4337,29 @@ function downloadAsImage() {
 
         showDownloadFeedback();
     }, 'image/png');
+}
+
+function getExportFilename(ext, { animated = false, data = false } = {}) {
+    // Get project name or fall back to 'glyph_art'
+    let base = 'glyph_art';
+    if (currentProjectId) {
+        const project = projects.find(p => p.id === currentProjectId);
+        if (project && project.name && project.name.trim()) {
+            base = project.name.trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .replace(/^_+|_+$/g, '');
+            if (!base) base = 'glyph_art';
+        }
+    }
+
+    let name = base;
+    if (animated) name += '_animation';
+    if (glyphToyMode && !data) name += currentProfileId === 'phone3' ? '_toy' : '_tool';
+    if (data) name += '_data';
+
+    return name + '.' + ext;
 }
 
 function showDownloadFeedback() {
@@ -4433,7 +4456,7 @@ async function exportAsGif() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'glyph-matrix-animation.gif';
+            a.download = getExportFilename('gif', { animated: true });
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4593,7 +4616,7 @@ async function exportAsRoundedGif() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'glyph-matrix-rounded.gif';
+            a.download = getExportFilename('gif', { animated: true });
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -4710,7 +4733,7 @@ async function exportVideo(format = 'webm') {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `glyph-matrix-${gifRoundedMode ? 'rounded' : 'animation'}.${format}`;
+            a.download = getExportFilename(format, { animated: true });
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -6414,16 +6437,16 @@ function downloadImage() {
         : createExportCanvas(scale, bg, customColor, style, threshold);
 
     let mimeType = 'image/png';
-    let filename = glyphToyMode ? 'glyph-matrix-rounded' : 'glyph-matrix';
+    let filename;
 
     if (format === 'jpg') {
         mimeType = 'image/jpeg';
-        filename += '.jpg';
+        filename = getExportFilename('jpg');
     } else if (format === 'webp') {
         mimeType = 'image/webp';
-        filename += '.webp';
+        filename = getExportFilename('webp');
     } else if (format === 'png') {
-        filename += '.png';
+        filename = getExportFilename('png');
     } else if (format === 'svg') {
         if (glyphToyMode) {
             downloadRoundedSVG();
@@ -6517,7 +6540,7 @@ function downloadSVG() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'glyph-matrix.svg';
+    a.download = getExportFilename('svg');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -6600,7 +6623,7 @@ function downloadRoundedSVG() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'glyph-matrix-rounded.svg';
+    a.download = getExportFilename('svg');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -6619,7 +6642,7 @@ async function downloadICO() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'glyph-matrix.ico';
+        a.download = getExportFilename('ico');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -6658,17 +6681,18 @@ async function copyTextToClipboard(text) {
 function downloadDataFile() {
     const format = dataFormat.value;
     const content = dataOutput.value;
-    let filename = 'glyph-matrix-data';
+    const isAnimated = frames.length > 1;
     let mimeType = 'text/plain';
+    let filename;
 
     if (format === 'json') {
-        filename += '.json';
+        filename = getExportFilename('json', { animated: isAnimated, data: true });
         mimeType = 'application/json';
     } else if (format === 'array') {
-        filename += '.js';
+        filename = getExportFilename('js', { animated: isAnimated, data: true });
         mimeType = 'text/javascript';
     } else {
-        filename += '.txt';
+        filename = getExportFilename('txt', { animated: isAnimated, data: true });
     }
 
     const blob = new Blob([content], { type: mimeType });
@@ -6721,7 +6745,7 @@ async function shareWithNativeAPI() {
         : createExportCanvas(4, 'transparent', '#000000', 'rounded', parseInt(opacityThreshold.value) || 0);
 
     canvas.toBlob(async (blob) => {
-        const file = new File([blob], 'glyph-matrix.png', { type: 'image/png' });
+        const file = new File([blob], getExportFilename('png'), { type: 'image/png' });
 
         try {
             await navigator.share({
