@@ -4331,6 +4331,7 @@ function downloadAsImage() {
         a.href = url;
         a.download = getExportFilename('png');
         document.body.appendChild(a);
+        trackDownload('png');
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -4364,6 +4365,12 @@ function getExportFilename(ext, { animated = false, data = false } = {}) {
 
 function showDownloadFeedback() {
     showFeedback('Image downloaded successfully!', 'success');
+}
+
+function trackDownload(format) {
+    if (typeof plausible !== 'undefined') {
+        plausible('Download', { props: { format: format } });
+    }
 }
 
 async function exportAsGif() {
@@ -4458,6 +4465,7 @@ async function exportAsGif() {
             a.href = url;
             a.download = getExportFilename('gif', { animated: true });
             document.body.appendChild(a);
+            trackDownload('gif');
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
@@ -4618,6 +4626,7 @@ async function exportAsRoundedGif() {
             a.href = url;
             a.download = getExportFilename('gif', { animated: true });
             document.body.appendChild(a);
+            trackDownload('gif-rounded');
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
@@ -4735,6 +4744,7 @@ async function exportVideo(format = 'webm') {
             a.href = url;
             a.download = getExportFilename(format, { animated: true });
             document.body.appendChild(a);
+            trackDownload(format);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
@@ -6465,6 +6475,7 @@ function downloadImage() {
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
+        trackDownload(format);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -6542,6 +6553,7 @@ function downloadSVG() {
     a.href = url;
     a.download = getExportFilename('svg');
     document.body.appendChild(a);
+    trackDownload('svg');
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
@@ -6625,6 +6637,7 @@ function downloadRoundedSVG() {
     a.href = url;
     a.download = getExportFilename('svg');
     document.body.appendChild(a);
+    trackDownload('svg-rounded');
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
@@ -6644,6 +6657,7 @@ async function downloadICO() {
         a.href = url;
         a.download = getExportFilename('ico');
         document.body.appendChild(a);
+        trackDownload('ico');
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -6701,6 +6715,7 @@ function downloadDataFile() {
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
+    trackDownload(format);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
