@@ -4877,6 +4877,180 @@ async function exportVideo(format = 'webm') {
     }
 }
 
+async function exportAsLottie() {
+    if (frames.length <= 1) {
+        showFeedback('Need at least 2 frames to create Lottie', 'error');
+        return;
+    }
+
+    try {
+        showFeedback('Generating Lottie JSON...', 'success');
+
+        // Use same toy/tool rounded layout as rounded GIF export
+        let pixelSize, scaleFactor, padding, canvasSize, offColor, roundedCorners;
+
+        if (currentProfileId === 'phone3') {
+            const gifScale = 36 / 13.05;
+            canvasSize = Math.round(512 * gifScale);
+            padding = Math.round(36 * gifScale);
+            pixelSize = 36;
+            scaleFactor = 17.7896 * gifScale;
+            offColor = '#1C1C1C';
+            roundedCorners = false;
+        } else {
+            pixelSize = 36;
+            const gapSize = 8;
+            scaleFactor = pixelSize + gapSize;
+            const gridContentSize = gridSize * scaleFactor - gapSize;
+            padding = Math.round(gridContentSize * 0.12);
+            canvasSize = gridContentSize + padding * 2;
+            offColor = '#1a1a1a';
+            roundedCorners = true;
+        }
+
+        const radius = canvasSize / 2;
+
+        // Calculate frame rate from average duration
+        const totalDuration = frames.reduce((sum, f) => sum + f.duration, 0);
+        const avgDuration = totalDuration / frames.length;
+        const fr = Math.round(1000 / avgDuration);
+
+        // Build assets and layers for each frame
+        const assets = [];
+        const layers = [];
+
+        for (let i = 0; i < frames.length; i++) {
+            const frame = frames[i];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+
+            // Transparent background, then black circle
+            ctx.clearRect(0, 0, canvasSize, canvasSize);
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Clip to circle
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Draw pixels
+            for (let row = 0; row < gridSize; row++) {
+                const rowWidth = shapePattern[row] || 0;
+                const startCol = Math.floor((gridSize - rowWidth) / 2);
+                const endCol = startCol + rowWidth - 1;
+
+                for (let col = startCol; col <= endCol; col++) {
+                    const pixelId = `${row}-${col}`;
+                    const opacity = frame.pixels.get(pixelId) || 0;
+
+                    const x = padding + col * scaleFactor;
+                    const y = padding + row * scaleFactor;
+
+                    if (opacity <= 0) {
+                        ctx.fillStyle = offColor;
+                    } else {
+                        const grayValue = Math.round(opacity);
+                        ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                    }
+
+                    if (roundedCorners) {
+                        const cornerRadius = pixelSize * 0.15;
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(x, y, pixelSize, pixelSize, cornerRadius);
+                        } else {
+                            ctx.rect(x, y, pixelSize, pixelSize);
+                        }
+                        ctx.fill();
+                    } else {
+                        ctx.fillRect(x, y, pixelSize, pixelSize);
+                    }
+                }
+            }
+
+            ctx.restore();
+
+            const dataUrl = canvas.toDataURL('image/png');
+            const assetId = `img_${String(i).padStart(4, '0')}`;
+
+            assets.push({
+                id: assetId,
+                w: canvasSize,
+                h: canvasSize,
+                u: '',
+                p: dataUrl
+            });
+
+            // Calculate in/out points based on cumulative frame durations
+            let inPoint = 0;
+            for (let j = 0; j < i; j++) {
+                inPoint += frames[j].duration / avgDuration;
+            }
+            const outPoint = inPoint + frame.duration / avgDuration;
+
+            layers.push({
+                ddd: 0,
+                ind: i + 1,
+                ty: 2,
+                nm: `Frame ${i + 1}`,
+                refId: assetId,
+                sr: 1,
+                ks: {
+                    o: { a: 0, k: 100 },
+                    r: { a: 0, k: 0 },
+                    p: { a: 0, k: [canvasSize / 2, canvasSize / 2, 0] },
+                    a: { a: 0, k: [canvasSize / 2, canvasSize / 2, 0] },
+                    s: { a: 0, k: [100, 100, 100] }
+                },
+                ao: 0,
+                ip: Math.round(inPoint),
+                op: Math.round(outPoint),
+                st: Math.round(inPoint),
+                bm: 0
+            });
+        }
+
+        const totalFrameCount = Math.round(frames.reduce((sum, f) => sum + f.duration / avgDuration, 0));
+
+        const lottieJson = {
+            v: '5.7.4',
+            fr: fr,
+            ip: 0,
+            op: totalFrameCount,
+            w: canvasSize,
+            h: canvasSize,
+            nm: 'Animation',
+            ddd: 0,
+            assets: assets,
+            layers: layers
+        };
+
+        const jsonStr = JSON.stringify(lottieJson);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = getExportFilename('json', { animated: true });
+        document.body.appendChild(a);
+        trackDownload('lottie');
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showFeedback('Lottie JSON exported successfully!', 'success');
+
+    } catch (error) {
+        showFeedback('Failed to export Lottie JSON', 'error');
+        console.error('Lottie export error:', error);
+    }
+}
+
 // Header functionality (no longer closeable)
 
 // Horizontal scrolling for frames container
@@ -6888,6 +7062,11 @@ function initializeExportModal() {
 
     // Rounded style toggle is available for all animation formats (GIF, WebM, MP4)
 
+    // Hide Glyph Toy toggle for Lottie format
+    animationFormat.addEventListener('change', () => {
+        gifStyleGroup.style.display = animationFormat.value === 'lottie' ? 'none' : '';
+    });
+
     // GIF rounded style toggle
     if (gifStyleToggleBtn) {
         gifStyleToggleBtn.addEventListener('click', () => {
@@ -6914,6 +7093,8 @@ function initializeExportModal() {
             } else {
                 exportAsGif();
             }
+        } else if (format === 'lottie') {
+            exportAsLottie();
         } else {
             // webm or mp4
             exportVideo(format);
