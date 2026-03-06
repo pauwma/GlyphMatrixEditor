@@ -176,6 +176,37 @@ body {
     cursor: not-allowed;
 }
 
+.nav-tab.gallery-tab {
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-tab.gallery-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.nav-tab.gallery-tab .museum-icon {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+}
+
+.nav-tab.gallery-tab:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.nav-tab.gallery-tab:hover .museum-icon {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+}
+
 .coming-soon {
     position: absolute;
     top: -8px;
