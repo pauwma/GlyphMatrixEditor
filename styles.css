@@ -152,6 +152,7 @@ body {
     position: relative;
     font-size: 0.9rem;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .nav-tab .tab-icon {
