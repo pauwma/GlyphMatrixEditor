@@ -477,6 +477,9 @@ const animationFormat = document.getElementById('animationFormat');
 const gifStyleToggleBtn = document.getElementById('gifStyleToggleBtn');
 const gifStyleGroup = document.getElementById('gifStyleGroup');
 let gifRoundedMode = false;
+const gifTransparentToggleBtn = document.getElementById('gifTransparentToggleBtn');
+const gifTransparentGroup = document.getElementById('gifTransparentGroup');
+let gifTransparentMode = true;
 const downloadAnimationBtn = document.getElementById('downloadAnimationBtn');
 const animationPreviewCanvas = document.getElementById('animationPreviewCanvas');
 const animationPreviewInfo = document.getElementById('animationPreviewInfo');
@@ -4491,6 +4494,14 @@ async function exportAsGif() {
     }
 }
 
+function updateGifTransparentVisibility() {
+    if (gifTransparentGroup) {
+        const format = animationFormat.value;
+        const supportsTransparency = format === 'gif' || format === 'webm';
+        gifTransparentGroup.style.display = (supportsTransparency && gifRoundedMode) ? '' : 'none';
+    }
+}
+
 async function exportAsRoundedGif() {
     if (frames.length <= 1) {
         showFeedback('Need at least 2 frames to create GIF', 'error');
@@ -4537,12 +4548,16 @@ async function exportAsRoundedGif() {
 
         const radius = canvasSize / 2;
 
-        // Initialize gif.js - GIF doesn't support alpha, so white outside circle
+        // Initialize gif.js with optional chroma key transparency
         const gifOptions = {
             quality: 10,
             width: canvasSize,
             height: canvasSize
         };
+
+        if (gifTransparentMode) {
+            gifOptions.transparent = 0xFF00FF;
+        }
 
         if (workerUrl) {
             gifOptions.workers = 2;
@@ -4562,9 +4577,11 @@ async function exportAsRoundedGif() {
             canvas.width = canvasSize;
             canvas.height = canvasSize;
 
-            // Fill entire canvas white, then draw black circle on top
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvasSize, canvasSize);
+            if (!gifTransparentMode) {
+                // Solid white background (original behavior)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvasSize, canvasSize);
+            }
 
             // Draw black circular background
             ctx.fillStyle = '#000000';
@@ -4614,6 +4631,25 @@ async function exportAsRoundedGif() {
             }
 
             ctx.restore();
+
+            // Post-process: apply clean chroma key without anti-aliased fringe
+            if (gifTransparentMode) {
+                const imageData = ctx.getImageData(0, 0, canvasSize, canvasSize);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    if (data[i + 3] === 0) {
+                        // Fully transparent pixel → exact chroma key
+                        data[i] = 255;
+                        data[i + 1] = 0;
+                        data[i + 2] = 255;
+                        data[i + 3] = 255;
+                    } else if (data[i + 3] < 255) {
+                        // Semi-transparent (anti-aliased edge) → make fully opaque
+                        data[i + 3] = 255;
+                    }
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
 
             // Add frame to GIF with its duration
             gif.addFrame(canvas, { delay: frame.duration, copy: true });
@@ -4783,8 +4819,10 @@ async function exportVideo(format = 'webm') {
             if (gifRoundedMode) {
                 // Rounded circle style
                 ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                if (!gifTransparentMode || format === 'mp4') {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                }
 
                 // Draw black circle
                 ctx.fillStyle = '#000000';
@@ -6332,9 +6370,20 @@ function renderAnimationFrameRounded(ctx, pixelSize, gapSize, frame) {
     // Clear canvas
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Draw white background (GIF doesn't support transparency)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    if (gifTransparentMode) {
+        // Checkerboard pattern to indicate transparency
+        const checkSize = Math.max(4, Math.round(canvasSize / 40));
+        for (let cy = 0; cy < canvasSize; cy += checkSize) {
+            for (let cx = 0; cx < canvasSize; cx += checkSize) {
+                const isLight = ((cx / checkSize) + (cy / checkSize)) % 2 === 0;
+                ctx.fillStyle = isLight ? '#CCCCCC' : '#999999';
+                ctx.fillRect(cx, cy, checkSize, checkSize);
+            }
+        }
+    } else {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+    }
 
     // Draw black circle
     ctx.fillStyle = '#000000';
@@ -7062,9 +7111,10 @@ function initializeExportModal() {
 
     // Rounded style toggle is available for all animation formats (GIF, WebM, MP4)
 
-    // Hide Glyph Toy toggle for Lottie format
+    // Hide Glyph Toy toggle for Lottie format, update transparent toggle visibility
     animationFormat.addEventListener('change', () => {
         gifStyleGroup.style.display = animationFormat.value === 'lottie' ? 'none' : '';
+        updateGifTransparentVisibility();
     });
 
     // GIF rounded style toggle
@@ -7075,6 +7125,20 @@ function initializeExportModal() {
             gifStyleToggleBtn.classList.toggle('active', gifRoundedMode);
             const imgBtn = document.getElementById('glyphToyToggleBtn');
             if (imgBtn) imgBtn.classList.toggle('active', gifRoundedMode);
+            updateGifTransparentVisibility();
+            // Restart preview to reflect new style
+            if (animationPreviewPlaying) {
+                stopAnimationPreview();
+                startAnimationPreview();
+            }
+        });
+    }
+
+    // GIF transparent background toggle
+    if (gifTransparentToggleBtn) {
+        gifTransparentToggleBtn.addEventListener('click', () => {
+            gifTransparentMode = !gifTransparentMode;
+            gifTransparentToggleBtn.classList.toggle('active', gifTransparentMode);
             // Restart preview to reflect new style
             if (animationPreviewPlaying) {
                 stopAnimationPreview();
